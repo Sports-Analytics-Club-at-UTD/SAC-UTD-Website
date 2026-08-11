@@ -1,8 +1,25 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from accounts.models import Role
 from .models import Project, Task
 from .serializers import ProjectDetailSerializer, ProjectListSerializer, TaskSerializer
+
+
+class IsProjectManagerOrReadOnly(permissions.BasePermission):
+    """
+    Any approved member can view boards (they need to see what teams are
+    doing / who's on them). Only a Director or Exec can create/edit/delete
+    a Project itself — day-to-day task management is handled by TaskViewSet,
+    which stays open to any authenticated member so team leads who aren't
+    directors can still run their own board.
+    """
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        user = request.user
+        return bool(user.is_authenticated and (user.is_superuser or user.is_director))
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -12,7 +29,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Project.objects.all().prefetch_related("members", "tasks")
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectManagerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ["status"]
     search_fields = ["name"]
