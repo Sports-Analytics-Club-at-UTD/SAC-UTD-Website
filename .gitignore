@@ -11,10 +11,18 @@ venv/
 env/
 .venv/
 
-# Django
+# Django/SQL
 db.sqlite3
 staticfiles/
 media/
+media_hub/migrations
+finance/migrations
+projects/migrations
+requests_hub/migrations
+rnd/migrations
+events/migrations
+core/migrations
+accounts/migrations
 
 # Editors / OS
 .vscode/
