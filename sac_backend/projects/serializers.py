@@ -31,7 +31,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
     members = MemberProfileSerializer(many=True, read_only=True)
     member_ids = serializers.PrimaryKeyRelatedField(
-        source="members", many=True, write_only=True, queryset=User.objects.all()
+        source="members", many=True, write_only=True, required=False, queryset=User.objects.all()
     )
     tasks = TaskSerializer(many=True, read_only=True)
 

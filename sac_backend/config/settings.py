@@ -111,11 +111,14 @@ if DATABASE_URL:
         )
     }
 else:
-    # Local fallback so `manage.py` still works with zero setup.
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            "OPTIONS": {"timeout": 20},
+            "TEST": {
+                "NAME": BASE_DIR / "test_db.sqlite3",
+            },
         }
     }
 
@@ -162,8 +165,14 @@ CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        # TokenAuthentication first: it defines authenticate_header, so
+        # an unauthenticated request correctly returns 401 with a
+        # WWW-Authenticate header. If SessionAuthentication were listed
+        # first (it doesn't define one), DRF falls back to 403 for
+        # every unauthenticated request site-wide, which masks the real
+        # "you're not logged in" signal API clients look for.
         "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
