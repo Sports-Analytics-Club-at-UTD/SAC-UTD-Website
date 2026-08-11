@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MARGIN — Sports Analytics Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0E11;
+    --panel: #12161B;
+    --panel-2: #171C22;
+    --line: #262B31;
+    --text: #F2F1EC;
+    --text-dim: #9AA0A6;
+    --accent: #FF6A2B;
+    --accent-dim: #B84E20;
+    --blue: #3FA9F5;
+    --green: #2ECC71;
+    --red: #E5484D;
+
+    --font-display: 'Teko', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Utility */
+  .mono{ font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  a{ color: inherit; text-decoration: none; }
+  ::selection{ background: var(--accent); color: #0B0E11; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+  }
+
+  /* ---------- NAVBAR ---------- */
+  .navbar{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(11,14,17,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .navbar .wrap{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    height: 68px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+  .brand-mark{
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    display:inline-block;
+    transform: skewX(-12deg);
+  }
+  .brand small{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    font-weight: 400;
+    margin-top: -2px;
+  }
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap: 34px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+  .nav-links a{ position:relative; padding: 4px 0; transition: color .15s ease; }
+  .nav-links a:hover{ color: var(--text); }
+  .nav-links a::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:-4px;
+    height:2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .18s ease;
+  }
+  .nav-links a:hover::after{ transform: scaleX(1); }
+
+  .nav-cta{
+    background: var(--accent);
+    color: #14100C;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 3px;
+    letter-spacing: 0.3px;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .nav-cta:hover{ background: #FF7F47; transform: translateY(-1px); }
+
+  .nav-toggle{ display:none; background:none; border:none; color:var(--text); cursor:pointer; }
+
+  /* ---------- SCORE TICKER ---------- */
+  .ticker{
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+    position: relative;
+  }
+  .ticker::before, .ticker::after{
+    content:"";
+    position:absolute;
+    top:0; bottom:0;
+    width: 60px;
+    z-index: 2;
+    pointer-events:none;
+  }
+  .ticker::before{ left:0; background: linear-gradient(90deg, var(--panel), transparent); }
+  .ticker::after{ right:0; background: linear-gradient(270deg, var(--panel), transparent); }
+
+  .ticker-track{
+    display:flex;
+    width: max-content;
+    animation: scroll-left 42s linear infinite;
+  }
+  .ticker:hover .ticker-track{ animation-play-state: paused; }
+
+  @keyframes scroll-left{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+
+  .ticker-item{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 10px 26px;
+    border-right: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .ticker-status{
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+  }
+  .ticker-status.live{ background: rgba(229,72,77,0.15); color: var(--red); }
+  .ticker-status.final{ color: var(--text-dim); }
+  .team{ color: var(--text-dim); }
+  .team.win{ color: var(--text); font-weight: 700; }
+  .score{ color: var(--text); }
+  .score.win{ color: var(--accent); }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding: 96px 0 80px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(700px 320px at 85% -10%, rgba(255,106,43,0.10), transparent 70%);
+  }
+  .hero .wrap{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 60px;
+    align-items: end;
+  }
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .eyebrow::before{ content:""; width: 22px; height: 1px; background: var(--accent); }
+
+  .hero h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 84px;
+    line-height: 0.92;
+    letter-spacing: 0.2px;
+    margin: 0 0 22px;
+  }
+  .hero h1 em{
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p.lede{
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    max-width: 46ch;
+    margin: 0 0 30px;
+  }
+  .hero-actions{ display:flex; gap: 14px; }
+  .btn-primary, .btn-ghost{
+    font-size: 14px;
+    font-weight: 600;
+    padding: 13px 22px;
+    border-radius: 3px;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .btn-primary{ background: var(--accent); color: #14100C; }
+  .btn-primary:hover{ background: #FF7F47; }
+  .btn-ghost{ border: 1px solid var(--line); color: var(--text); }
+  .btn-ghost:hover{ border-color: var(--text-dim); }
+
+  /* Hero stat panel */
+  .stat-panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stat-panel-head{
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display:flex;
+    justify-content: space-between;
+  }
+  .stat-panel-head span.dot{ color: var(--green); }
+  .stat-row{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .stat-row:last-child{ border-bottom: none; }
+  .stat-label{ font-size: 13px; color: var(--text-dim); }
+  .stat-value{
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .stat-value.up{ color: var(--green); }
+  .stat-value.down{ color: var(--red); }
+
+  /* ---------- SECTION SCAFFOLDING (for future content) ---------- */
+  section{ padding: 76px 0; border-bottom: 1px solid var(--line); }
+  .section-head{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .section-head h2{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 42px;
+    margin: 0;
+    line-height: 1;
+  }
+  .section-tag{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .section-link{
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* Reports / template cards grid — placeholder content to extend */
+  .card-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 22px;
+    display:flex;
+    flex-direction:column;
+    gap: 14px;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .card:hover{ border-color: #3a4048; transform: translateY(-2px); }
+  .card-tag{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--blue);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .card h3{ margin: 0; font-size: 18px; font-weight: 600; line-height: 1.35; }
+  .card p{ margin:0; font-size: 14px; color: var(--text-dim); line-height: 1.55; flex:1; }
+  .card-meta{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display:flex;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* By the numbers strip */
+  .numbers-strip{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow:hidden;
+  }
+  .numbers-strip > div{
+    padding: 30px 24px;
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .numbers-strip > div:last-child{ border-right: none; }
+  .numbers-strip .big{
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .numbers-strip .label{
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  /* Placeholder / "add onto later" block */
+  .scaffold{
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+    padding: 48px 28px;
+    text-align:center;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .scaffold strong{ color: var(--text); font-family: var(--font-body); font-size: 15px; display:block; margin-bottom: 6px; }
+
+  /* Footer */
+  footer{ padding: 44px 0; }
+  footer .wrap{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .foot-links{ display:flex; gap: 26px; font-size: 13px; color: var(--text-dim); }
+  .foot-links a:hover{ color: var(--text); }
+  .foot-meta{ font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 860px){
+    .hero .wrap{ grid-template-columns: 1fr; gap: 40px; }
+    .hero h1{ font-size: 58px; }
+    .card-grid{ grid-template-columns: 1fr; }
+    .numbers-strip{ grid-template-columns: 1fr 1fr; }
+    .numbers-strip > div:nth-child(2){ border-right:none; }
+    .nav-links{
+      position:absolute;
+      top: 68px; left:0; right:0;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 20px 28px 26px;
+      gap: 18px;
+      display:none;
+    }
+    .nav-links.open{ display:flex; }
+    .nav-cta{ display:none; }
+    .nav-toggle{ display:block; }
+  }
+  @media (max-width: 560px){
+    .hero{ padding: 64px 0 56px; }
+    .hero h1{ font-size: 44px; }
+    .section-head h2{ font-size: 32px; }
+    .numbers-strip{ grid-template-columns: 1fr; }
+    .numbers-strip > div{ border-right:none; border-bottom: 1px solid var(--line); }
+    .numbers-strip > div:last-child{ border-bottom:none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= NAVBAR ================= -->
+  <header class="navbar">
+    <div class="wrap">
+      <a href="#top" class="brand">
+        <span class="brand-mark"></span>
+        <span>MARGIN<small>SPORTS ANALYTICS CLUB</small></span>
+      </a>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#reports">Reports</a>
+        <a href="#numbers">By The Numbers</a>
+        <a href="#projects">Projects</a>
+        <a href="#about">About</a>
+        <a href="#" class="nav-cta" style="display:inline-flex;">Join The Club</a>
+      </nav>
+
+      <a href="#" class="nav-cta">Join The Club</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= SCORE TICKER ================= -->
+  <div class="ticker" id="top">
+    <div class="ticker-track" id="tickerTrack">
+      <!-- content duplicated via JS for seamless loop -->
+    </div>
+  </div>
+
+  <!-- ================= HERO ================= -->
+  <section class="hero" style="border-bottom:1px solid var(--line); padding-bottom:80px;">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow">Est. 2024 · Campus Analytics Collective</div>
+        <h1>We read the box score<br>before it's <em>final.</em></h1>
+        <p class="lede">MARGIN is the campus club where students build models, argue about win probability, and publish the numbers that explain why teams actually win — or don't.</p>
+        <div class="hero-actions">
+          <a href="#reports" class="btn-primary">Read latest report →</a>
+          <a href="#about" class="btn-ghost">How we work</a>
+        </div>
+      </div>
+
+      <div class="stat-panel">
+        <div class="stat-panel-head">
+          <span><span class="dot">●</span> LIVE MODEL OUTPUT</span>
+          <span>WK 2</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Win probability model, accuracy</span>
+          <span class="stat-value up mono">71.4%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Active predictive models</span>
+          <span class="stat-value mono">12</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Reports published this season</span>
+          <span class="stat-value mono">38</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Club members</span>
+          <span class="stat-value mono">64</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= REPORTS (placeholder cards — replace with real content) ================= -->
+  <section id="reports">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <div class="section-tag">01 / LATEST WORK</div>
+          <h2>Recent reports</h2>
+        </div>
+        <a href="#" class="section-link">View all reports →</a>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <span class="card-tag">Basketball · Model</span>
+          <h3>Placeholder headline — swap in your first published report title</h3>
+          <p>Short summary goes here. Describe the question the analysis answers and the headline finding in one or two sentences.</p>
+          <div class="card-meta"><span>By Member Name</span><span>MMM DD</span></div>
+        </div>
+        <div class="card">
+          <span class="card-tag">Football · Deep Dive</span>
+          <h3>Placeholder headline — swap in your second report title</h3>
+          <p>Short summary goes here. Describe the question the analysis answers and the headline finding in one or two sentences.</p>
+          <div class="card-meta"><span>By Member Name</span><span>MMM DD</span></div>
+        </div>
+        <div class="card">
+          <span class="card-tag">Baseball · Notebook</span>
+          <h3>Placeholder headline — swap in your third report title</h3>
+          <p>Short summary goes here. Describe the question the analysis answers and the headline finding in one or two sentences.</p>
+          <div class="card-meta"><span>By Member Name</span><span>MMM DD</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BY THE NUMBERS ================= -->
+  <section id="numbers">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <div class="section-tag">02 / THE CLUB IN STATS</div>
+          <h2>By the numbers</h2>
+        </div>
+      </div>
+
+      <div class="numbers-strip mono">
+        <div>
+          <div class="big">64</div>
+          <div class="label">Active members</div>
+        </div>
+        <div>
+          <div class="big">12</div>
+          <div class="label">Models in production</div>
+        </div>
+        <div>
+          <div class="big">6</div>
+          <div class="label">Varsity sports covered</div>
+        </div>
+        <div>
+          <div class="big">3</div>
+          <div class="label">Conference partnerships</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TEMPLATE SCAFFOLD — build future sections here ================= -->
+  <section id="projects">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <div class="section-tag">03 / OPEN SPACE</div>
+          <h2>Projects</h2>
+        </div>
+      </div>
+      <div class="scaffold">
+        <strong>This section is a placeholder</strong>
+        Add a projects grid, an interactive leaderboard, embedded charts, or a signup form here.
+        The card, stat-panel, and numbers-strip components above can be reused as building blocks.
+      </div>
+    </div>
+  </section>
+
+  <section id="about" style="border-bottom:none;">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <div class="section-tag">04 / ABOUT</div>
+          <h2>About the club</h2>
+        </div>
+      </div>
+      <div class="scaffold">
+        <strong>This section is a placeholder</strong>
+        Add your club's mission, meeting times, officer bios, and how students can get involved.
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer>
+    <div class="wrap">
+      <div class="brand" style="font-size:22px;">
+        <span class="brand-mark" style="width:9px;height:9px;"></span>
+        <span>MARGIN</span>
+      </div>
+      <div class="foot-links">
+        <a href="#reports">Reports</a>
+        <a href="#numbers">By The Numbers</a>
+        <a href="#projects">Projects</a>
+        <a href="#about">About</a>
+      </div>
+      <div class="foot-meta">© 2026 MARGIN SPORTS ANALYTICS CLUB</div>
+    </div>
+  </footer>
+
+<script>
+  // Mobile nav toggle
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+
+  // ---- Score ticker: sample data + seamless scroll ----
+  // Replace this array with a live feed later; each item renders as one ticker segment.
+  const games = [
+    { status: 'FINAL', league: 'NFL', away: 'DAL', awayScore: 27, home: 'PHI', homeScore: 24, winner: 'away' },
+    { status: 'LIVE · Q3 08:41', league: 'FB', away: 'OU', awayScore: 21, home: 'TEX', homeScore: 17, winner: 'away', live: true },
+    { status: 'FINAL', league: 'NBA', away: 'DAL', awayScore: 112, home: 'OKC', homeScore: 108, winner: 'away' },
+    { status: 'FINAL', league: 'FB', away: 'SMU', awayScore: 34, home: 'TCU', homeScore: 27, winner: 'away' },
+    { status: 'LIVE · 63\'', league: 'MLS', away: 'FCD', awayScore: 2, home: 'AUS', homeScore: 1, winner: 'away', live: true },
+    { status: 'FINAL', league: 'D3 MBB', away: 'UTD', awayScore: 74, home: 'UTT', homeScore: 69, winner: 'away' },
+    { status: 'FINAL/OT', league: 'MLB', away: 'TEX', awayScore: 6, home: 'HOU', homeScore: 5, winner: 'away' },
+    { status: 'FINAL', league: 'FB', away: 'OSU', awayScore: 30, home: 'BAY', homeScore: 20, winner: 'away' },
+    { status: 'LIVE · 2P 11:02', league: 'NHL', away: 'DAL', awayScore: 3, home: 'NSH', homeScore: 2, winner: 'away', live: true },
+    { status: 'FINAL', league: 'FB', away: 'TTU', awayScore: 28, home: 'KU', homeScore: 24, winner: 'away' },
+  ];
+
+  function renderTicker(list){
+    return list.map(g => `
+      <div class="ticker-item">
+        <span class="ticker-status ${g.live ? 'live' : 'final'}">${g.status}</span>
+        <span style="color:var(--text-dim);">${g.league}</span>
+        <span class="team ${g.winner==='away' ? 'win' : ''}">${g.away}</span>
+        <span class="score ${g.winner==='away' ? 'win' : ''}">${g.awayScore}</span>
+        <span style="color:var(--text-dim);">–</span>
+        <span class="score ${g.winner==='home' ? 'win' : ''}">${g.homeScore}</span>
+        <span class="team ${g.winner==='home' ? 'win' : ''}">${g.home}</span>
+      </div>
+    `).join('');
+  }
+
+  // duplicate the list once so the -50% translateX loop is seamless
+  const track = document.getElementById('tickerTrack');
+  track.innerHTML = renderTicker(games) + renderTicker(games);
+</script>
+
+</body>
+</html>
