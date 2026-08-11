@@ -1,0 +1,26 @@
+# Environment / secrets
+.env
+.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+venv/
+env/
+.venv/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Migrations note:
+# We ARE committing migrations (don't ignore them) — they're the source
+# of truth for the DB schema and need to be shared/reviewed in PRs.
