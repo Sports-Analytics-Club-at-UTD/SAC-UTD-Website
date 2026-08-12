@@ -16,7 +16,7 @@ export default function Login() {
 
   const fetchUserProfile = async (token) => {
     try {
-      const response = await fetch(`${BASE_URL}/accounts/whoami/`, {
+      const response = await fetch(`${BASE_URL}/auth/whoami/`, {
         method: 'GET',
         headers: {
           'Authorization': `Token ${token}`,

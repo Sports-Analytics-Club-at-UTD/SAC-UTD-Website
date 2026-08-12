@@ -26,7 +26,7 @@ export default function Signup() {
     setStatus({ type: 'loading', message: 'Submitting...' });
 
     try {
-      const response = await fetch(`${BASE_URL}/accounts/signup/`, {
+      const response = await fetch(`${BASE_URL}/auth/signup/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
