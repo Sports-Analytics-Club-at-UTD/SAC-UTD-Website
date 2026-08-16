@@ -41,8 +41,8 @@ export default function Home() {
       <header className="navbar">
         <div className="wrap">
           <a href="#top" className="brand">
-            <span className="brand-mark"></span>
-            <span>MARGIN<small>SPORTS ANALYTICS CLUB</small></span>
+            <img src="/SAC Submark Logo Light.png" alt="SAC Submark" style={{ width: '36px', height: '36px' }} />
+            <span>SAC UTD<small>SPORTS ANALYTICS CLUB</small></span>
           </a>
 
           <nav className={`nav-links ${isNavOpen ? 'open' : ''}`} id="navLinks">
@@ -86,7 +86,7 @@ export default function Home() {
           <div>
             <div className="eyebrow">Est. 2024 · Campus Analytics Collective</div>
             <h1>We read the box score<br />before it's <em>final.</em></h1>
-            <p className="lede">MARGIN is the campus club where students build models, argue about win probability, and publish the numbers that explain why teams actually win — or don't.</p>
+            <p className="lede">SAC UTD is the campus club where students build models, argue about win probability, and publish the numbers that explain why teams actually win — or don't.</p>
             <div className="hero-actions">
               <a href="#reports" className="btn-primary">Read latest report →</a>
               <a href="#about" className="btn-ghost">How we work</a>
@@ -218,9 +218,8 @@ export default function Home() {
       {/* ================= FOOTER ================= */}
       <footer>
         <div className="wrap">
-          <div className="brand" style={{ fontSize: '22px' }}>
-            <span className="brand-mark" style={{ width: '9px', height: '9px' }}></span>
-            <span>MARGIN</span>
+          <div className="brand">
+            <img src="/SAC Banner Light.png" alt="SAC UTD Banner" style={{ height: '28px' }} />
           </div>
           <div className="foot-links">
             <a href="#reports">Reports</a>
@@ -228,7 +227,7 @@ export default function Home() {
             <a href="#projects">Projects</a>
             <a href="#about">About</a>
           </div>
-          <div className="foot-meta">© 2026 MARGIN SPORTS ANALYTICS CLUB</div>
+          <div className="foot-meta">© 2026 SAC UTD</div>
         </div>
       </footer>
     </>

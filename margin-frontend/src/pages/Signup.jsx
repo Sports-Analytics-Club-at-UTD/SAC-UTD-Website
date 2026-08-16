@@ -43,6 +43,7 @@ export default function Signup() {
       });
 
       const data = await response.json();
+      console.log("DJANGO REJECTION REASON:", data);
 
       if (response.ok) {
         setIsSuccess(true);
