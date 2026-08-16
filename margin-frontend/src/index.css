@@ -4,8 +4,7 @@
    ========================================================================== */
 @font-face {
   font-family: 'RaglanPunch UB';
-  src: url('/fonts/RaglanPunch-UB.woff2') format('woff2'),
-       url('/fonts/RaglanPunch-UB.woff') format('woff');
+  src: url('/fonts/RaglanPunch-UB.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
 }

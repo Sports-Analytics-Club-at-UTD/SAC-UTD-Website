@@ -83,19 +83,21 @@ export default function Login() {
           <p>Your authenticated session is active. Select a workspace below.</p>
           
           <div className="dashboard-grid">
-            <div className="dash-module">
+            <Link to="/projects" className="dash-module">
               <h3>Projects Portal</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Access Kanban boards and active model pipelines.</p>
-            </div>
-            <div className="dash-module">
+            </Link>
+            
+            <Link to="/events" className="dash-module">
               <h3>Events & Calendar</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>View upcoming watch parties and club meetings.</p>
-            </div>
+            </Link>
+            
             {isDirector && (
-              <div className="dash-module" style={{ borderColor: 'var(--accent-dim)' }}>
+              <Link to="/secretary" className="dash-module" style={{ borderColor: 'var(--accent-dim)' }}>
                 <h3 style={{ color: 'var(--accent)' }}>Director Tools</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Finance budget, media approvals, and exec requests.</p>
-              </div>
+              </Link>
             )}
           </div>
           
