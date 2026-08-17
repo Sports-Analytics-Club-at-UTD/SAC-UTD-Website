@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "../src/shared/AuthContext";
 import DirectorPortalApp from "../src/portal/DirectorPortalApp";
+import ProjectsApp from "../src/projects/ProjectsApp";
 import DevHomePage from "./DevHomePage";
 import DevLoginPage from "./DevLoginPage";
 
@@ -10,7 +11,7 @@ import DevLoginPage from "./DevLoginPage";
  * This is what your App.jsx should end up looking like structurally,
  * minus the "Dev" prefixes: AuthProvider wraps everything once, your
  * real pages take "/" and "/login" (and "/member", "/signup", etc),
- * and the Director Portal mounts with exactly the one line below.
+ * and each self-contained module mounts with its own one-liner.
  */
 export default function DevApp() {
   return (
@@ -19,9 +20,10 @@ export default function DevApp() {
         <Route path="/" element={<DevHomePage />} />
         <Route path="/login" element={<DevLoginPage />} />
 
-        {/* <-- This is the actual integration point. Everything else
-               in this file is throwaway dev scaffolding. */}
+        {/* <-- These two lines are the actual integration points.
+               Everything else in this file is throwaway dev scaffolding. */}
         <Route path="/portal/*" element={<DirectorPortalApp />} />
+        <Route path="/projects/*" element={<ProjectsApp />} />
       </Routes>
     </AuthProvider>
   );

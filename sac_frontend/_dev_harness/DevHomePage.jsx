@@ -35,6 +35,13 @@ export default function DevHomePage() {
           {/* This is the actual integration point: drop this component
               into whatever navbar the co-director builds. */}
           <DirectorPortalNavLink className="dev-portal-link" />
+          {/* Projects Portal has no role gating — a plain link works
+              for any logged-in member, no conditional component needed. */}
+          <div style={{ marginTop: 8 }}>
+            <a href="/projects" className="dev-portal-link">
+              Projects
+            </a>
+          </div>
           <div style={{ marginTop: 12 }}>
             <button onClick={logout}>Log out</button>
           </div>
