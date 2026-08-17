@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/finance/", include("finance.urls")),
     path("api/rnd/", include("rnd.urls")),
     path("api/requests/", include("requests_hub.urls")),
+    path("api/portal/", include("portal.urls"))
 ]
 
 if settings.DEBUG:
