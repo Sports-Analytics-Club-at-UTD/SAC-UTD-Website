@@ -27,6 +27,12 @@ export default function DevHomePage() {
 
       <h1>Sports Analytics Club (placeholder homepage)</h1>
 
+      <p>
+        <a href="/portfolio" className="dev-portal-link">
+          Portfolio
+        </a>
+      </p>
+
       {user ? (
         <div style={{ marginTop: 16 }}>
           <p>

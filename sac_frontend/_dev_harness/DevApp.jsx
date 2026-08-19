@@ -4,6 +4,7 @@ import DirectorPortalApp from "../src/portal/DirectorPortalApp";
 import ProjectsApp from "../src/projects/ProjectsApp";
 import DevHomePage from "./DevHomePage";
 import DevLoginPage from "./DevLoginPage";
+import PortfolioPage from "../src/portfolio/pages/PortfolioPage";
 
 /**
  * ⚠️ DEV HARNESS ONLY — see DevHomePage.jsx for why.
@@ -24,6 +25,7 @@ export default function DevApp() {
                Everything else in this file is throwaway dev scaffolding. */}
         <Route path="/portal/*" element={<DirectorPortalApp />} />
         <Route path="/projects/*" element={<ProjectsApp />} />
+        <Route path="/portfolio" element={<PortfolioPage />} />
       </Routes>
     </AuthProvider>
   );
