@@ -1,0 +1,99 @@
+/* Same isolation pattern as portal.css / projects.css: scoped under
+   .sac-portfolio, every class prefixed sac-portfolio-, no selector
+   touches html/body or anything unscoped. Tokens duplicated
+   intentionally to keep this module fully self-contained. */
+
+.sac-portfolio {
+  --sac-portfolio-void: #0a0d0b;
+  --sac-portfolio-panel: #10201a;
+  --sac-portfolio-line: #223529;
+  --sac-portfolio-orange-500: #e8720c;
+  --sac-portfolio-text-100: #f4f7f4;
+  --sac-portfolio-text-400: #8fa396;
+  --sac-portfolio-font-display: "Oswald", "Arial Narrow", sans-serif;
+  --sac-portfolio-font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  background: var(--sac-portfolio-void);
+  color: var(--sac-portfolio-text-100);
+  font-family: var(--sac-portfolio-font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.sac-portfolio * {
+  box-sizing: border-box;
+}
+
+.sac-portfolio a {
+  color: inherit;
+}
+
+.sac-portfolio :focus-visible {
+  outline: 2px solid var(--sac-portfolio-orange-500);
+  outline-offset: 2px;
+}
+
+.sac-portfolio-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 24px 96px;
+}
+
+.sac-portfolio-heading-lg {
+  font-family: var(--sac-portfolio-font-display);
+  font-weight: 600;
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.sac-portfolio-muted {
+  color: var(--sac-portfolio-text-400);
+}
+
+.sac-portfolio-error {
+  color: #ff5d5d;
+  font-size: 13px;
+}
+
+.sac-portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.sac-portfolio-card {
+  display: block;
+  background: var(--sac-portfolio-panel);
+  border: 1px solid var(--sac-portfolio-line);
+  border-radius: 8px;
+  padding: 18px;
+  text-decoration: none;
+  transition: border-color 0.12s ease;
+}
+
+.sac-portfolio-card:hover {
+  border-color: var(--sac-portfolio-orange-500);
+}
+
+.sac-portfolio-card-name {
+  font-family: var(--sac-portfolio-font-display);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.sac-portfolio-card-desc {
+  color: var(--sac-portfolio-text-400);
+  font-size: 13px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.sac-portfolio-card-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--sac-portfolio-text-400);
+  margin-top: 12px;
+}
