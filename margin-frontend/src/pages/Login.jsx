@@ -92,6 +92,11 @@ export default function Login() {
               <h3>Events & Calendar</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>View upcoming watch parties and club meetings.</p>
             </Link>
+
+            <Link className="dash-module" to="/marketing">
+              <h3>Marketing Portal</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Review media scroller uploads and access GDrive.</p>
+            </Link>
             
             {isDirector && (
               <Link to="/secretary" className="dash-module" style={{ borderColor: 'var(--accent-dim)' }}>

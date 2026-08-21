@@ -1,4 +1,4 @@
-  /* ==========================================================================
+/* ==========================================================================
    FONT FACE DECLARATIONS
    Ensure you add the actual font files to a /fonts/ directory in your project
    ========================================================================== */
@@ -256,12 +256,12 @@ a { color: inherit; text-decoration: none; }
 .hero h1 {
   font-family: var(--font-display);
   font-size: 84px;
-  line-height: 0.92;
+  line-height: 1.1; /* UPDATED from 0.92 */
   letter-spacing: 0.2px;
-  margin: 0 0 22px;
+  margin: 0 0 32px; /* UPDATED from 22px */
 }
 .hero h1 em {
-  font-style: italic; /* Inherits correctly with RaglanPunch UB */
+  font-style: italic;
   color: var(--accent);
 }
 .hero p.lede {
@@ -319,7 +319,7 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--font-display);
   font-size: 32px;
   color: var(--text);
-  font-style: normal; /* Override the h1, h2, h3 italic rule if it bleeds, although it shouldn't here */
+  font-style: normal;
 }
 .stat-value.up { color: var(--green); }
 .stat-value.down { color: var(--red); }
@@ -340,7 +340,7 @@ section { padding: 76px 0; border-bottom: 1px solid var(--line); flex: 1; }
   font-family: var(--font-display);
   font-size: 42px;
   margin: 0;
-  line-height: 1;
+  line-height: 1.15; /* UPDATED from 1 */
 }
 .section-tag {
   font-family: var(--font-mono);
@@ -529,8 +529,8 @@ footer .wrap {
 .portal-container .card h2 {
   font-family: var(--font-display);
   font-size: 36px;
-  margin: 0 0 8px 0;
-  line-height: 1;
+  margin: 0 0 16px 0; /* UPDATED from 8px */
+  line-height: 1.2;   /* UPDATED from 1 */
 }
 .portal-container .card p {
   color: var(--text-dim);
@@ -555,6 +555,15 @@ footer .wrap {
   border: 1px solid var(--line);
   padding: 24px;
   border-radius: 4px;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+.dash-module:hover {
+  border-color: var(--text-dim);
+  transform: translateY(-2px);
 }
 .dash-module h3 {
   margin: 0 0 10px 0;
@@ -573,7 +582,7 @@ footer .wrap {
   margin-bottom: 16px;
 }
 .badge.director {
-  background: rgba(232, 117, 0, 0.15); /* Orange tint */
+  background: rgba(232, 117, 0, 0.15); 
   color: var(--accent);
 }
 
