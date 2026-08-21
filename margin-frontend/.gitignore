@@ -1,25 +1,33 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Environment / secrets
 .env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+venv/
+env/
+.venv/
+
+# Django/SQL
+db.sqlite3
+staticfiles/
+media/
+media_hub/migrations
+finance/migrations
+projects/migrations
+requests_hub/migrations
+rnd/migrations
+events/migrations
+core/migrations
+accounts/migrations
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Migrations note:
+# We ARE committing migrations (don't ignore them) — they're the source
+# of truth for the DB schema and need to be shared/reviewed in PRs.
