@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
 export default function Secretary() {
@@ -6,7 +7,6 @@ export default function Secretary() {
   const [allMembers, setAllMembers] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  // Common roles based on standard club structures
   const ROLES = [
     { value: 'member', label: 'Member' },
     { value: 'exec', label: 'Executive' },
@@ -23,35 +23,31 @@ export default function Secretary() {
     if (!token) return;
 
     try {
-      // Fetch Pending Members
       const pendingRes = await fetch(`${BASE_URL}/auth/pending/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       if (pendingRes.ok) {
         const pendingData = await pendingRes.json();
-        // Check if Django paginated the response
         if (Array.isArray(pendingData)) {
           setPendingMembers(pendingData);
         } else if (pendingData && Array.isArray(pendingData.results)) {
           setPendingMembers(pendingData.results);
         } else {
-          setPendingMembers([]); // Fallback to prevent crash
+          setPendingMembers([]); 
         }
       }
 
-      // Fetch All Active Members
       const membersRes = await fetch(`${BASE_URL}/auth/members/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       if (membersRes.ok) {
         const membersData = await membersRes.json();
-        // Check if Django paginated the response
         if (Array.isArray(membersData)) {
           setAllMembers(membersData);
         } else if (membersData && Array.isArray(membersData.results)) {
           setAllMembers(membersData.results);
         } else {
-          setAllMembers([]); // Fallback to prevent crash
+          setAllMembers([]); 
         }
       }
     } catch (err) {
@@ -75,7 +71,7 @@ export default function Secretary() {
 
       if (response.ok) {
         setStatus({ type: 'success', message: 'Role updated successfully.' });
-        fetchUsers(); // Refresh the lists to move users between tables
+        fetchUsers(); 
         setTimeout(() => setStatus({ type: '', message: '' }), 3000);
       } else {
         const data = await response.json();
@@ -89,7 +85,14 @@ export default function Secretary() {
   return (
     <main className="portal-container" style={{ alignItems: 'flex-start' }}>
       <div className="card" style={{ maxWidth: '1000px', width: '100%', margin: '0 auto' }}>
-        <h2>Secretary Dashboard</h2>
+        
+        <div style={{ marginBottom: '24px' }}>
+          <Link to="/" style={{ color: 'var(--text-dim)', textDecoration: 'none', fontSize: '14px' }}>
+            ← Return to Homepage
+          </Link>
+        </div>
+
+        <h2 style={{ marginTop: '0' }}>Secretary Dashboard</h2>
         <p>Manage club access and assign user roles.</p>
 
         {status.message && (
@@ -104,7 +107,6 @@ export default function Secretary() {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '24px 0' }} />
 
-        {/* PENDING MEMBERS SECTION */}
         <h3 style={{ color: 'var(--accent)' }}>Pending Approvals ({pendingMembers.length})</h3>
         {pendingMembers.length === 0 ? (
           <p style={{ color: 'var(--text-dim)', fontSize: '14px' }}>No new users waiting for approval.</p>
@@ -141,7 +143,6 @@ export default function Secretary() {
           </div>
         )}
 
-        {/* ACTIVE MEMBERS SECTION */}
         <h3>Manage Active Roster ({allMembers.length})</h3>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
