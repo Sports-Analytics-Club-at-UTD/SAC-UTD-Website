@@ -72,8 +72,8 @@ class AllMembersListView(generics.ListAPIView):
     Secretary Page: full roster, for changing roles on existing members
     (not just brand-new signups).
     """
-    # FIX: Filter to only show approved members
-    queryset = User.objects.filter(is_approved=True).order_by("username")
+
+    queryset = User.objects.all().order_by("username")
     serializer_class = SecretaryUserSerializer
     permission_classes = [permissions.IsAuthenticated, IsSecretary]
 
