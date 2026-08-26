@@ -22,7 +22,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 # Bucket Configuration
 AWS_STORAGE_BUCKET_NAME = 'marketing-media'
 # Using your exact Supabase project reference from earlier:
-AWS_S3_ENDPOINT_URL = 'https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/' 
+AWS_S3_ENDPOINT_URL = 'https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/s3' 
 AWS_S3_REGION_NAME = 'us-west-2' # Change if your Supabase region is different
 
 # Tell Django to route media uploads to Supabase S3
