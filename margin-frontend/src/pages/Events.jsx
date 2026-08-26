@@ -45,7 +45,7 @@ const fetchEvents = async () => {
     ];
 
     try {
-      const response = await fetch(`${BASE_URL}/events/`, {
+      const response = await fetch(`${BASE_URL}/api/events/`, {
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json'
@@ -74,7 +74,7 @@ const fetchEvents = async () => {
     setStatus({ type: 'loading', message: 'Publishing event...' });
 
     try {
-      const response = await fetch(`${BASE_URL}/events/`, {
+      const response = await fetch(`${BASE_URL}/api/events/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,

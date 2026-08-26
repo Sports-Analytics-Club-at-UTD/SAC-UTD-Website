@@ -42,7 +42,7 @@ export default function Marketing() {
     ];
 
     try {
-      const response = await fetch(`${BASE_URL}/media/pending/`);
+      const response = await fetch(`${BASE_URL}/api/media/pending/`);
       if (response.ok) {
         const data = await response.json();
         setPendingMedia(data.results || data);

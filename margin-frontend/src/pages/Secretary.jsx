@@ -60,7 +60,7 @@ export default function Secretary() {
     setStatus({ type: 'loading', message: 'Updating role...' });
 
     try {
-      const response = await fetch(`${BASE_URL}/auth/members/${userId}/role/`, {
+      const response = await fetch(`${BASE_URL}/api/auth/members/${userId}/role/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Token ${token}`,
