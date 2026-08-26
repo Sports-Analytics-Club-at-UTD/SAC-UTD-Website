@@ -6,7 +6,25 @@ from rest_framework.views import APIView
 from .models import User
 from .permissions import IsSecretary, IsSelfOrDirectorReadOnly
 from .serializers import MemberProfileSerializer, SecretaryUserSerializer, SignupSerializer
+from rest_framework.authtoken.views import ObtainAuthToken
 
+class LoginView(ObtainAuthToken):
+    """
+    POST /api/auth/login/
+    Takes username and password, returns token and user ID.
+    """
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username,
+            'is_approved': user.is_approved
+        })
 
 class SignupView(generics.CreateAPIView):
     """
