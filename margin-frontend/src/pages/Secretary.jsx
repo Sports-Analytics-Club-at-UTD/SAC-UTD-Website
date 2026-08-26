@@ -23,7 +23,7 @@ export default function Secretary() {
     if (!token) return;
 
     try {
-      const pendingRes = await fetch(`${BASE_URL}/auth/pending/`, {
+      const pendingRes = await fetch(`${BASE_URL}/api/auth/pending/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       if (pendingRes.ok) {
@@ -37,7 +37,7 @@ export default function Secretary() {
         }
       }
 
-      const membersRes = await fetch(`${BASE_URL}/auth/members/`, {
+      const membersRes = await fetch(`${BASE_URL}/api/auth/members/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       if (membersRes.ok) {
