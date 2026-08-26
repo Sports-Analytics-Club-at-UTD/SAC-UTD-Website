@@ -28,11 +28,18 @@ export default function Home() {
       fetch(`${BASE_URL}/api/auth/whoami/`, {
         headers: { 'Authorization': `Token ${token}` }
       })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          // If token is invalid/expired, clear it so it stops spamming
+          localStorage.removeItem('sac_auth_token');
+          throw new Error('Invalid token');
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.id) setUserProfile(data);
       })
-      .catch(err => console.error(err));
+      .catch(err => console.log("Session cleared or invalid token."));
     }
 
     // Fetch approved media for the homepage scroller
