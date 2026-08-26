@@ -234,8 +234,12 @@ export default function Home() {
             
             {approvedMedia.map((item) => {
               // Construct clean public URL without nested bucket folder duplication
-              let imageUrl = item.file?.startsWith('http') ? item.file : `${BASE_URL}${item.file}`;
-              imageUrl = imageUrl.replace('/marketing-media/marketing-media/', '/marketing-media/');
+              // Replace this block in your .map((item) => { ... }) loop:
+              let imageUrl = item.file;
+              if (imageUrl && !imageUrl.startsWith('http')) {
+                // Point directly to your Supabase public bucket URL format
+                imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
+              }
 
               return (
                 <div key={item.id} style={{ 
