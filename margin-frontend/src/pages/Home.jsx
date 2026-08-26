@@ -200,40 +200,65 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= MEDIA SCROLLER ================= */}
+      {/* ================= CLUB HIGHLIGHTS ================= */}
       {approvedMedia.length > 0 && (
-        <section id="scroller" style={{ background: 'var(--panel-2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: '60px 0' }}>
-          <div className="wrap">
-            <div className="section-head" style={{ marginBottom: '24px' }}>
-              <div>
-                <div className="section-tag">02 / CLUB HIGHLIGHTS</div>
-                <h2>Marketing & Media Scroller</h2>
-              </div>
-            </div>
+        <section style={{ 
+          background: 'var(--bg)', 
+          borderTop: '1px solid var(--line)', 
+          borderBottom: '1px solid var(--line)', 
+          padding: '40px 0',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '24px',
+            overflowX: 'auto',
+            padding: '0 24px',
+            scrollSnapType: 'x mandatory',
+            scrollbarWidth: 'none', // Hides scrollbar on Firefox
+            msOverflowStyle: 'none',  // Hides scrollbar on IE/Edge
+          }}>
+            <style>{`
+              /* Hides scrollbar for Chrome, Safari and Opera */
+              section div::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            
+            {approvedMedia.map((item) => {
+              // Construct clean public URL without nested bucket folder duplication
+              let imageUrl = item.file?.startsWith('http') ? item.file : `${BASE_URL}${item.file}`;
+              imageUrl = imageUrl.replace('/marketing-media/marketing-media/', '/marketing-media/');
 
-            <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '10px', scrollSnapType: 'x mandatory' }}>
-              {approvedMedia.map((item) => (
-                <div key={item.id} style={{ minWidth: '320px', maxWidth: '320px', flex: '0 0 auto', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '6px', overflow: 'hidden', scrollSnapAlign: 'start' }}>
-                  {item.file ? (
-                    <img 
-                      src={item.file} 
-                      alt={item.title || "Club Media"} 
-                      style={{ width: '100%', height: '180px', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div style={{ width: '100%', height: '180px', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
-                      [ No Image ]
-                    </div>
-                  )}
-                  <div style={{ padding: '16px' }}>
-                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{item.title || 'Untitled Asset'}</h4>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)' }}>
-                      Approved & Live
-                    </div>
-                  </div>
+              return (
+                <div key={item.id} style={{ 
+                  minWidth: '320px', 
+                  maxWidth: '320px', 
+                  height: '200px',
+                  flex: '0 0 auto', 
+                  background: 'var(--panel)', 
+                  border: '1px solid var(--line)', 
+                  borderRadius: '6px', 
+                  overflow: 'hidden', 
+                  scrollSnapAlign: 'start',
+                  position: 'relative'
+                }}>
+                  <img 
+                    src={imageUrl} 
+                    alt="Club Highlight" 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover', 
+                      display: 'block' 
+                    }}
+                    onError={(e) => {
+                      e.target.parentElement.style.display = 'none'; // Gracefully hides if an asset fails to load
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </section>
       )}
