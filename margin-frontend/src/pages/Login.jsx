@@ -1,39 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [status, setStatus] = useState({ type: '', message: '' });
-  const [userProfile, setUserProfile] = useState(null); // null = not logged in
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('sac_auth_token');
     if (token) {
-      fetchUserProfile(token);
+      navigate('/');
     }
-  }, []);
-
-  const fetchUserProfile = async (token) => {
-    try {
-      const response = await fetch(`${BASE_URL}/auth/whoami/`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUserProfile(userData);
-      } else {
-        localStorage.removeItem('sac_auth_token');
-      }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    }
-  };
+  }, [navigate]);
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -55,7 +34,7 @@ export default function Login() {
       if (response.ok && data.token) {
         localStorage.setItem('sac_auth_token', data.token);
         setStatus({ type: '', message: '' });
-        fetchUserProfile(data.token);
+        navigate('/');
       } else {
         setStatus({ type: 'error', message: data.error || 'Invalid credentials.' });
       }
@@ -63,54 +42,6 @@ export default function Login() {
       setStatus({ type: 'error', message: 'Network error connecting to the backend.' });
     }
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem('sac_auth_token');
-    setUserProfile(null);
-    setCredentials({ username: '', password: '' });
-  };
-
-  if (userProfile) {
-    const isDirector = userProfile.is_director || userProfile.is_exec;
-    
-    return (
-      <main className="portal-container">
-        <div className="card" style={{ maxWidth: '800px', width: '100%' }}>
-          <span className={`badge ${isDirector ? 'director' : ''}`}>
-            {(userProfile.role || 'Member').replace('_', ' ')}
-          </span>
-          <h2>Welcome back, {userProfile.username || 'Member'}.</h2>
-          <p>Your authenticated session is active. Select a workspace below.</p>
-          
-          <div className="dashboard-grid">
-            <Link to="/projects" className="dash-module">
-              <h3>Projects Portal</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Access Kanban boards and active model pipelines.</p>
-            </Link>
-            
-            <Link to="/events" className="dash-module">
-              <h3>Events & Calendar</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>View upcoming watch parties and club meetings.</p>
-            </Link>
-
-            <Link className="dash-module" to="/marketing">
-              <h3>Marketing Portal</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Review media scroller uploads and access GDrive.</p>
-            </Link>
-            
-            {isDirector && (
-              <Link to="/secretary" className="dash-module" style={{ borderColor: 'var(--accent-dim)' }}>
-                <h3 style={{ color: 'var(--accent)' }}>Director Tools</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Finance budget, media approvals, and exec requests.</p>
-              </Link>
-            )}
-          </div>
-          
-          <button onClick={handleLogout} className="nav-cta" style={{ marginTop: '30px' }}>Sign Out</button>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="portal-container">
@@ -139,6 +70,12 @@ export default function Login() {
         </form>
         <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: 'var(--text-dim)' }}>
           Need an account? <Link to="/signup" style={{ color: 'var(--accent)' }}>Apply here</Link>
+          
+          <div style={{ marginTop: '16px' }}>
+            <Link to="/" style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>
+              ← Return to Homepage
+            </Link>
+          </div>
         </div>
       </div>
     </main>

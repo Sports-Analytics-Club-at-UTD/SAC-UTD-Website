@@ -5,6 +5,7 @@ import Signup from './pages/Signup';
 import Secretary from './pages/Secretary';
 import Events from './pages/Events';
 import Marketing from './pages/Marketing';
+import Projects from './pages/Projects';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/secretary" element={<Secretary />} />
         <Route path="/events" element={<Events />} />
         <Route path="/marketing" element={<Marketing />} />
+        <Route path="/projects" element={<Projects />} />
       </Routes>
     </Router>
   );

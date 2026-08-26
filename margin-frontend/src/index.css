@@ -619,4 +619,5 @@ footer .wrap {
   .numbers-strip { grid-template-columns: 1fr; }
   .numbers-strip > div { border-right: none; border-bottom: 1px solid var(--line); }
   .numbers-strip > div:last-child { border-bottom: none; }
+  .nav-cta.nav-cta-mobile { display: none; }
 }

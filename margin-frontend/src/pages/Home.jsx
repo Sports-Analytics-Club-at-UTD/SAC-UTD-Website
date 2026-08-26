@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../config';
 
 // ---- Score ticker: sample data ----
-// Replace this array with a live feed later.
 const games = [
   { status: 'FINAL', league: 'NFL', away: 'DAL', awayScore: 27, home: 'PHI', homeScore: 24, winner: 'away' },
   { status: 'LIVE · Q3 08:41', league: 'FB', away: 'OU', awayScore: 21, home: 'TEX', homeScore: 17, winner: 'away', live: true },
@@ -17,10 +17,30 @@ const games = [
 ];
 
 export default function Home() {
-  // Mobile nav toggle state
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const navigate = useNavigate();
 
-  // Helper to render the ticker segment
+  useEffect(() => {
+    const token = localStorage.getItem('sac_auth_token');
+    if (token) {
+      fetch(`${BASE_URL}/auth/whoami/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.id) setUserProfile(data);
+      })
+      .catch(err => console.error(err));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('sac_auth_token');
+    setUserProfile(null);
+    navigate('/');
+  };
+
   const renderTickerItems = () => {
     return games.map((g, index) => (
       <div className="ticker-item" key={index}>
@@ -48,15 +68,37 @@ export default function Home() {
           <nav className={`nav-links ${isNavOpen ? 'open' : ''}`} id="navLinks">
             <a href="#reports" onClick={() => setIsNavOpen(false)}>Reports</a>
             <a href="#numbers" onClick={() => setIsNavOpen(false)}>By The Numbers</a>
-            <a href="#projects" onClick={() => setIsNavOpen(false)}>Projects</a>
-            <a href="#about" onClick={() => setIsNavOpen(false)}>About</a>
             
-            <Link to="/portal" onClick={() => setIsNavOpen(false)}>Login</Link>
-            
-            <Link to="/signup" className="nav-cta" style={{ display: 'inline-flex' }}>Join The Club</Link>
+            {/* DYNAMIC RENDER: If logged in, show tools. If not, show Login. */}
+            {userProfile ? (
+              <>
+                <Link to="/events" onClick={() => setIsNavOpen(false)}>Events</Link>
+                <Link to="/projects" onClick={() => setIsNavOpen(false)}>Projects</Link>
+                
+                {(userProfile.role === 'director_marketing' || userProfile.role === 'exec') && (
+                  <Link to="/marketing" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Marketing</Link>
+                )}
+                {(userProfile.role === 'director_secretary' || userProfile.role === 'exec') && (
+                  <Link to="/secretary" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Secretary</Link>
+                )}
+
+                <button onClick={handleLogout} className="nav-cta" style={{ display: 'inline-flex' }}>
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/portal" onClick={() => setIsNavOpen(false)}>Login</Link>
+                <Link to="/signup" className="nav-cta" style={{ display: 'inline-flex' }}>Join The Club</Link>
+              </>
+            )}
           </nav>
 
-          <Link to="/signup" className="nav-cta">Join The Club</Link>
+          {/* Mobile view top-level CTA */}
+          {!userProfile && (
+            <Link to="/signup" className="nav-cta nav-cta-mobile">Join The Club</Link>
+          )}
+          
           <button 
             className="nav-toggle" 
             onClick={() => setIsNavOpen(!isNavOpen)} 
@@ -74,7 +116,6 @@ export default function Home() {
       {/* ================= SCORE TICKER ================= */}
       <div className="ticker" id="top">
         <div className="ticker-track">
-          {/* duplicate the list once so the -50% translateX loop is seamless */}
           {renderTickerItems()}
           {renderTickerItems()}
         </div>
@@ -89,7 +130,6 @@ export default function Home() {
             <p className="lede">SAC UTD is the campus club where students build models, argue about win probability, and publish the numbers that explain why teams actually win — or don't.</p>
             <div className="hero-actions">
               <a href="#reports" className="btn-primary">Read latest report →</a>
-              <a href="#about" className="btn-ghost">How we work</a>
             </div>
           </div>
 
@@ -183,38 +223,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= TEMPLATE SCAFFOLD ================= */}
-      <section id="projects">
-        <div className="wrap">
-          <div className="section-head">
-            <div>
-              <div className="section-tag">03 / OPEN SPACE</div>
-              <h2>Projects</h2>
-            </div>
-          </div>
-          <div className="scaffold">
-            <strong>This section is a placeholder</strong>
-            Add a projects grid, an interactive leaderboard, embedded charts, or a signup form here.
-            The card, stat-panel, and numbers-strip components above can be reused as building blocks.
-          </div>
-        </div>
-      </section>
-
-      <section id="about" style={{ borderBottom: 'none' }}>
-        <div className="wrap">
-          <div className="section-head">
-            <div>
-              <div className="section-tag">04 / ABOUT</div>
-              <h2>About the club</h2>
-            </div>
-          </div>
-          <div className="scaffold">
-            <strong>This section is a placeholder</strong>
-            Add your club's mission, meeting times, officer bios, and how students can get involved.
-          </div>
-        </div>
-      </section>
-
       {/* ================= FOOTER ================= */}
       <footer>
         <div className="wrap">
@@ -224,8 +232,6 @@ export default function Home() {
           <div className="foot-links">
             <a href="#reports">Reports</a>
             <a href="#numbers">By The Numbers</a>
-            <a href="#projects">Projects</a>
-            <a href="#about">About</a>
           </div>
           <div className="foot-meta">© 2026 SAC UTD</div>
         </div>

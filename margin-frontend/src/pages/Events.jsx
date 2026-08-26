@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
 export default function Events() {
@@ -18,7 +19,6 @@ export default function Events() {
   useEffect(() => {
     const token = localStorage.getItem('sac_auth_token');
     if (token) {
-      // Fetch user profile to check for Events Director / Exec permissions
       fetch(`${BASE_URL}/auth/whoami/`, {
         headers: { 'Authorization': `Token ${token}` }
       })
@@ -31,9 +31,8 @@ export default function Events() {
   }, []);
 
 const fetchEvents = async () => {
-    const token = localStorage.getItem('sac_auth_token'); // 1. Grab the token
+    const token = localStorage.getItem('sac_auth_token'); 
     
-    // Fallback data so the UI renders while you build the Django views
     const dummyEvents = [
       {
         id: 1,
@@ -46,7 +45,6 @@ const fetchEvents = async () => {
     ];
 
     try {
-      // 2. Add the headers object to the fetch request
       const response = await fetch(`${BASE_URL}/events/`, {
         headers: {
           'Authorization': `Token ${token}`,
@@ -101,20 +99,24 @@ const fetchEvents = async () => {
   };
 
   const handleRegister = async (eventId) => {
-    // Placeholder for registration logic (e.g., POST /api/events/<id>/register/)
     alert(`Registration logic for event ${eventId} will trigger here.`);
   };
 
-  // Determine if user has permission to create events
   const canManageEvents = userProfile && (userProfile.role === 'director_events' || userProfile.role === 'exec');
 
   return (
     <main className="portal-container" style={{ alignItems: 'flex-start' }}>
       <div className="card" style={{ maxWidth: '900px', width: '100%', margin: '0 auto' }}>
         
+        <div style={{ marginBottom: '24px' }}>
+          <Link to="/" style={{ color: 'var(--text-dim)', textDecoration: 'none', fontSize: '14px' }}>
+            ← Return to Homepage
+          </Link>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
           <div>
-            <h2>Club Calendar</h2>
+            <h2 style={{ marginTop: '0' }}>Club Calendar</h2>
             <p style={{ margin: 0 }}>Upcoming watch parties, meetings, and workshops.</p>
           </div>
           {canManageEvents && (
@@ -140,7 +142,6 @@ const fetchEvents = async () => {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 30px 0' }} />
 
-        {/* EVENT CREATION FORM (SECURED) */}
         {showForm && canManageEvents && (
           <div style={{ background: 'var(--panel-2)', padding: '24px', borderRadius: '4px', border: '1px solid var(--line)', marginBottom: '30px' }}>
             <h3 style={{ color: 'var(--accent)', marginTop: 0 }}>Publish New Event</h3>
@@ -183,7 +184,6 @@ const fetchEvents = async () => {
           </div>
         )}
 
-        {/* EVENTS LIST */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {events.length === 0 ? (
             <p style={{ color: 'var(--text-dim)' }}>No upcoming events scheduled at this time.</p>

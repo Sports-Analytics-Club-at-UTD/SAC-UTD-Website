@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
 export default function Marketing() {
@@ -9,7 +10,6 @@ export default function Marketing() {
   useEffect(() => {
     const token = localStorage.getItem('sac_auth_token');
     if (token) {
-      // Fetch user profile to check for Marketing Director / Exec permissions
       fetch(`${BASE_URL}/auth/whoami/`, {
         headers: { 'Authorization': `Token ${token}` }
       })
@@ -22,7 +22,6 @@ export default function Marketing() {
   }, []);
 
   const fetchPendingMedia = async () => {
-    // Fallback dummy data while the backend media endpoints are being built
     const dummyMedia = [
       {
         id: 1,
@@ -30,7 +29,7 @@ export default function Marketing() {
         uploadedBy: 'Member Name',
         date: '2026-08-18',
         type: 'Graphic Design',
-        previewColor: '#154734' // Simulating an image thumbnail
+        previewColor: '#154734' 
       },
       {
         id: 2,
@@ -42,7 +41,6 @@ export default function Marketing() {
       }
     ];
 
-    // Placeholder fetch logic
     try {
       const response = await fetch(`${BASE_URL}/media/pending/`);
       if (response.ok) {
@@ -57,33 +55,36 @@ export default function Marketing() {
   };
 
   const handleApprove = async (mediaId) => {
-    // In production: send PATCH request to /api/media/{mediaId}/approve/
     setStatus({ type: 'success', message: 'Graphic approved! Added to homepage media scroller.' });
     setPendingMedia(pendingMedia.filter(m => m.id !== mediaId));
     setTimeout(() => setStatus({ type: '', message: '' }), 3000);
   };
 
   const handleReject = async (mediaId) => {
-    // In production: send DELETE request to /api/media/{mediaId}/
     setStatus({ type: 'error', message: 'Graphic rejected and removed from queue.' });
     setPendingMedia(pendingMedia.filter(m => m.id !== mediaId));
     setTimeout(() => setStatus({ type: '', message: '' }), 3000);
   };
 
-  // Check if the user has the correct permissions
   const hasAccess = userProfile && (userProfile.role === 'director_marketing' || userProfile.role === 'exec');
 
   return (
     <main className="portal-container" style={{ alignItems: 'flex-start' }}>
       <div className="card" style={{ maxWidth: '1000px', width: '100%', margin: '0 auto' }}>
         
+        <div style={{ marginBottom: '24px' }}>
+          <Link to="/" style={{ color: 'var(--text-dim)', textDecoration: 'none', fontSize: '14px' }}>
+            ← Return to Homepage
+          </Link>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h2>Marketing Portal</h2>
+            <h2 style={{ marginTop: '0' }}>Marketing Portal</h2>
             <p style={{ margin: 0 }}>Approve graphics for the media scroller and manage club assets.</p>
           </div>
           <a 
-            href="https://drive.google.com/" 
+            href="https://drive.google.com/drive/folders/13UeTL1NGKHBzyeIpbUNn2ggrPAM_2uGE/" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="btn-ghost"
@@ -106,7 +107,6 @@ export default function Marketing() {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 30px 0' }} />
 
-        {/* ACCESS GATE */}
         {!hasAccess && userProfile ? (
           <div style={{ padding: '40px', textAlign: 'center', background: 'var(--panel-2)', borderRadius: '4px', border: '1px solid var(--line)' }}>
             <h3 style={{ color: 'var(--red)', marginTop: 0 }}>Restricted Access</h3>
@@ -123,7 +123,6 @@ export default function Marketing() {
                 {pendingMedia.map((media) => (
                   <div key={media.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
                     
-                    {/* Simulated Image Thumbnail */}
                     <div style={{ height: '160px', background: media.previewColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
                       [ Image Preview ]
                     </div>

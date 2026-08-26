@@ -60,7 +60,7 @@ export default function Signup() {
       <main className="portal-container" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
         <div className="card" style={{ textAlign: 'center', maxWidth: '420px' }}>
           <h2 style={{ color: 'var(--green)' }}>Application Received</h2>
-          <p>Your account has been successfully created and is now pending Secretary approval[cite: 2].</p>
+          <p>Your account has been successfully created and is now pending Secretary approval.</p>
           <Link to="/" className="btn-primary" style={{ marginTop: '20px' }}>Return to Home</Link>
         </div>
       </main>
@@ -71,10 +71,9 @@ export default function Signup() {
     <main className="portal-container" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
       <div className="card" style={{ maxWidth: '500px' }}>
         <h2>Join the Club</h2>
-        <p>Create your account to access datasets and active models. Note: All new accounts require Secretary approval[cite: 2].</p>
+        <p>Create your account to access datasets and active models. Note: All new accounts require Secretary approval.</p>
         
         <form onSubmit={handleSubmit}>
-          {/* Use the exact same HTML structure from your previous vanilla file, just change 'class' to 'className' and 'for' to 'htmlFor' */}
           <div className="form-group">
             <label htmlFor="username">Username</label>
             <input type="text" name="username" value={formData.username} onChange={handleChange} required />
@@ -151,6 +150,12 @@ export default function Signup() {
         
         <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: 'var(--text-dim)' }}>
           Already applied? <Link to="/portal" style={{ color: 'var(--accent)' }}>Log in here</Link>
+          
+          <div style={{ marginTop: '16px' }}>
+            <Link to="/" style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>
+              ← Return to Homepage
+            </Link>
+          </div>
         </div>
       </div>
     </main>
