@@ -5,6 +5,7 @@ dj-database-url>=2.1
 psycopg2-binary>=2.9
 django-cors-headers>=4.3
 django-filter>=24.1
+gunicorn==21.2.0
 
 # Uncomment when you wire up Stripe:
 # stripe>=9.0
