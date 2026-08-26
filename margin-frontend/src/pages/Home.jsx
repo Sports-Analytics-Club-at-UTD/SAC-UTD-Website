@@ -236,9 +236,14 @@ export default function Home() {
               // Construct clean public URL without nested bucket folder duplication
               // Replace this block in your .map((item) => { ... }) loop:
               let imageUrl = item.file;
-              if (imageUrl && !imageUrl.startsWith('http')) {
-                // Point directly to your Supabase public bucket URL format
-                imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
+              if (imageUrl) {
+                if (!imageUrl.startsWith('http')) {
+                  // Relative path from django-storages
+                  imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
+                } else {
+                  // If django-storages returned an absolute URL using the /s3/ endpoint, swap it to public
+                  imageUrl = imageUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/');
+                }
               }
 
               return (
