@@ -7,6 +7,9 @@ from .models import User
 from .permissions import IsSecretary, IsSelfOrDirectorReadOnly
 from .serializers import MemberProfileSerializer, SecretaryUserSerializer, SignupSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from django.contrib.auth import authenticate
 
 class LoginView(ObtainAuthToken):
     """
@@ -130,3 +133,16 @@ class WhoAmIView(APIView):
                 "is_officer": user.is_officer,
             }
         )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def custom_obtain_auth_token(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(username=username, password=password)
+    if not user:
+        return Response({'non_field_errors': ['Unable to log in with provided credentials.']}, status=400)
+
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({'token': token.key})

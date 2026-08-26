@@ -1,5 +1,5 @@
 from django.urls import path
-from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.authtoken.views import custom_obtain_auth_token
 
 from . import views
 
@@ -7,7 +7,7 @@ app_name = "accounts"
 
 urlpatterns = [
     path("signup/", views.SignupView.as_view(), name="signup"),
-    path("login/", obtain_auth_token, name="login"),  # POST username/password -> {token}
+    path('login/', custom_obtain_auth_token, name='login'),  # POST username/password -> {token}
     path("whoami/", views.WhoAmIView.as_view(), name="whoami"),
     path("me/", views.MeView.as_view(), name="me"),
 
