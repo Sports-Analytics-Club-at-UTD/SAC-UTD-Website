@@ -19,6 +19,7 @@ const games = [
 export default function Home() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [approvedMedia, setApprovedMedia] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,6 +34,14 @@ export default function Home() {
       })
       .catch(err => console.error(err));
     }
+
+    // Fetch approved media for the homepage scroller
+    fetch(`${BASE_URL}/api/media/uploads/approved/`)
+      .then(res => res.json())
+      .then(data => {
+        setApprovedMedia(data.results || data);
+      })
+      .catch(err => console.error("Failed to load scroller media", err));
   }, []);
 
   const handleLogout = () => {
@@ -67,9 +76,9 @@ export default function Home() {
 
           <nav className={`nav-links ${isNavOpen ? 'open' : ''}`} id="navLinks">
             <a href="#reports" onClick={() => setIsNavOpen(false)}>Reports</a>
+            <a href="#scroller" onClick={() => setIsNavOpen(false)}>Media</a>
             <a href="#numbers" onClick={() => setIsNavOpen(false)}>By The Numbers</a>
             
-            {/* DYNAMIC RENDER: If logged in, show tools. If not, show Login. */}
             {userProfile ? (
               <>
                 <Link to="/events" onClick={() => setIsNavOpen(false)}>Events</Link>
@@ -94,7 +103,6 @@ export default function Home() {
             )}
           </nav>
 
-          {/* Mobile view top-level CTA */}
           {!userProfile && (
             <Link to="/signup" className="nav-cta nav-cta-mobile">Join The Club</Link>
           )}
@@ -192,12 +200,50 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ================= MEDIA SCROLLER ================= */}
+      {approvedMedia.length > 0 && (
+        <section id="scroller" style={{ background: 'var(--panel-2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: '60px 0' }}>
+          <div className="wrap">
+            <div className="section-head" style={{ marginBottom: '24px' }}>
+              <div>
+                <div className="section-tag">02 / CLUB HIGHLIGHTS</div>
+                <h2>Marketing & Media Scroller</h2>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '10px', scrollSnapType: 'x mandatory' }}>
+              {approvedMedia.map((item) => (
+                <div key={item.id} style={{ minWidth: '320px', maxWidth: '320px', flex: '0 0 auto', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '6px', overflow: 'hidden', scrollSnapAlign: 'start' }}>
+                  {item.file ? (
+                    <img 
+                      src={item.file} 
+                      alt={item.title || "Club Media"} 
+                      style={{ width: '100%', height: '180px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '180px', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
+                      [ No Image ]
+                    </div>
+                  )}
+                  <div style={{ padding: '16px' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{item.title || 'Untitled Asset'}</h4>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)' }}>
+                      Approved & Live
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ================= BY THE NUMBERS ================= */}
       <section id="numbers">
         <div className="wrap">
           <div className="section-head">
             <div>
-              <div className="section-tag">02 / THE CLUB IN STATS</div>
+              <div className="section-tag">03 / THE CLUB IN STATS</div>
               <h2>By the numbers</h2>
             </div>
           </div>
@@ -231,6 +277,7 @@ export default function Home() {
           </div>
           <div className="foot-links">
             <a href="#reports">Reports</a>
+            <a href="#scroller">Media</a>
             <a href="#numbers">By The Numbers</a>
           </div>
           <div className="foot-meta">© 2026 SAC UTD</div>

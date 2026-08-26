@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets
+from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -34,10 +34,16 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = MediaUpload.objects.all()
+        
+        # If requested, filter by status (e.g. /api/media/uploads/?status=Pending Review)
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            qs = qs.filter(status=status_param)
+
         if user.is_superuser or user.role in (Role.DIRECTOR_MARKETING, Role.EXEC):
             return qs
         return qs.filter(uploaded_by=user)
-
+    
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)
 
@@ -56,4 +62,11 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
         serializer = MediaReviewSerializer(upload, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(reviewed_by=user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny], url_path="approved")
+    def approved(self, request):
+        # Use __iexact to catch 'Approved', 'approved', or 'APPROVED'
+        qs = MediaUpload.objects.filter(status__iexact="Approved").order_by("display_order", "-created_at")
+        serializer = MediaUploadSerializer(qs, many=True, context={"request": request})
         return Response(serializer.data)

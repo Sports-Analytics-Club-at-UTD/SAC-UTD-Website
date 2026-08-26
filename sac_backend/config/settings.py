@@ -9,6 +9,36 @@ via a single DATABASE_URL connection string.
 from pathlib import Path
 import environ
 import dj_database_url
+import os
+
+# ==========================================
+# SUPABASE S3 STORAGE SETTINGS
+# ==========================================
+
+# S3 Credentials
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+# Bucket Configuration
+AWS_STORAGE_BUCKET_NAME = 'marketing-media'
+# Using your exact Supabase project reference from earlier:
+AWS_S3_ENDPOINT_URL = 'https://autkzjewmeifwfsrgrvi.storage.supabase.co/storage/v1/s3' 
+AWS_S3_REGION_NAME = 'us-west-2' # Change if your Supabase region is different
+
+# Tell Django to route media uploads to Supabase S3
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# Bucket Behavior
+AWS_S3_FILE_OVERWRITE = False      # Don't overwrite files with the same name
+AWS_DEFAULT_ACL = 'public-read'    # Make sure images are publicly viewable
+AWS_QUERYSTRING_AUTH = False       # Remove expiring tokens from the image URLs
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,6 +77,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "core",
     "accounts",
+    "storages",
     "events",
     "projects",
     "media_hub",
@@ -158,6 +189,7 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:5173",
         "https://sac-utd-website.vercel.app"
     ],
 )
