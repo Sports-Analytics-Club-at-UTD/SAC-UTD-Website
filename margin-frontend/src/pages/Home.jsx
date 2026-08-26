@@ -24,7 +24,7 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem('sac_auth_token');
     if (token) {
-      fetch(`${BASE_URL}/auth/whoami/`, {
+      fetch(`${BASE_URL}/api/auth/whoami/`, {
         headers: { 'Authorization': `Token ${token}` }
       })
       .then(res => res.json())
