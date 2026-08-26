@@ -2,7 +2,7 @@
 .env
 
 # Node
-node-modules/
+node_modules/
 
 # Python
 __pycache__/
