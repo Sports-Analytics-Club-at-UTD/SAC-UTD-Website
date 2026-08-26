@@ -1,4 +1,25 @@
 from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import UserManager as DefaultUserManager
+
+class UserManager(DefaultUserManager):
+    """
+    Custom manager for the SAC User model. Inherits from Django's 
+    default UserManager so natural keys, username lookups, and 
+    authentication work out of the box.
+    """
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_approved", True)
+        extra_fields.setdefault("role", "exec")
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        return super().create_superuser(username, email, password, **extra_fields)
 
 
 class UserManager(BaseUserManager):

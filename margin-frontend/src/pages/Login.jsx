@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
 export default function Login() {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ username: '', password: ''});
   const [status, setStatus] = useState({ type: '', message: '' });
   const navigate = useNavigate();
 
@@ -36,7 +36,8 @@ export default function Login() {
         setStatus({ type: '', message: '' });
         navigate('/');
       } else {
-        setStatus({ type: 'error', message: data.error || 'Invalid credentials.' });
+        // Change this line in your handleLogin catch/else block:
+      setStatus({ type: 'error', message: data.non_field_errors?.[0] || data.detail || JSON.stringify(data) });
       }
     } catch (err) {
       setStatus({ type: 'error', message: 'Network error connecting to the backend.' });
