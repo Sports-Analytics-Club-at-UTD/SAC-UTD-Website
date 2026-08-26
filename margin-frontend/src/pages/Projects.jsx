@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
 export default function Projects() {
@@ -85,8 +86,11 @@ export default function Projects() {
     <main className="portal-container" style={{ alignItems: 'flex-start', padding: '40px 20px' }}>
       <div className="card" style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', boxShadow: 'none' }}>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
+            <Link to="/" style={{ color: 'var(--text-dim)', fontSize: '13px', display: 'inline-block', marginBottom: '12px' }}>
+              ← Back to Home
+            </Link>
             <h2>Projects Portal</h2>
             <p style={{ margin: 0 }}>Track active models, data pipelines, and club initiatives.</p>
           </div>
@@ -103,7 +107,10 @@ export default function Projects() {
         {!hasAccess && userProfile ? (
           <div style={{ padding: '60px 40px', textAlign: 'center', background: 'var(--panel-2)', borderRadius: '4px', border: '1px solid var(--line)' }}>
             <h3 style={{ color: 'var(--red)', marginTop: 0 }}>Restricted Access</h3>
-            <p style={{ color: 'var(--text-dim)', marginBottom: 0 }}>Only active Officers and Directors can view or modify the internal project pipelines.</p>
+            <p style={{ color: 'var(--text-dim)', marginBottom: '24px' }}>Only active Officers and Directors can view or modify the internal project pipelines.</p>
+            <Link to="/" className="btn-ghost">
+              Return to Homepage
+            </Link>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '10px' }}>
