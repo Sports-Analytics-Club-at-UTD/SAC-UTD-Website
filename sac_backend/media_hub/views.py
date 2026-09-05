@@ -1,6 +1,8 @@
 from rest_framework import generics, permissions, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import api_view
 
 from accounts.models import Role
 from .models import MediaUpload
@@ -29,7 +31,7 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = MediaUploadSerializer
-    permission_classes = [permissions.IsAuthenticated, IsMarketingDirectorOrOwner]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         user = self.request.user
@@ -70,3 +72,17 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
         qs = MediaUpload.objects.filter(status__iexact="Approved").order_by("display_order", "-created_at")
         serializer = MediaUploadSerializer(qs, many=True, context={"request": request})
         return Response(serializer.data)
+
+    @api_view(['DELETE'])
+    def delete_media_upload(request, pk):
+        # Verify the user has marketing permissions or is an exec
+        if request.user.role not in ['director_marketing', 'exec']:
+            return Response({"error": "Unauthorized to delete media."}, status=403)
+        
+        try:
+            media_item = MediaUpload.objects.get(pk=pk)
+            # Optional: You can also delete the physical file from Supabase storage here if desired
+            media_item.delete()
+            return Response({"message": "Media deleted successfully."})
+        except MediaUpload.DoesNotExist:
+            return Response({"error": "Media item not found."}, status=404)
