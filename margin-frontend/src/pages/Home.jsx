@@ -2,25 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 
-// ---- Score ticker: sample data ----
-const games = [
-  { status: 'FINAL', league: 'NFL', away: 'DAL', awayScore: 27, home: 'PHI', homeScore: 24, winner: 'away' },
-  { status: 'LIVE · Q3 08:41', league: 'FB', away: 'OU', awayScore: 21, home: 'TEX', homeScore: 17, winner: 'away', live: true },
-  { status: 'FINAL', league: 'NBA', away: 'DAL', awayScore: 112, home: 'OKC', homeScore: 108, winner: 'away' },
-  { status: 'FINAL', league: 'FB', away: 'SMU', awayScore: 34, home: 'TCU', homeScore: 27, winner: 'away' },
-  { status: 'LIVE · 63\'', league: 'MLS', away: 'FCD', awayScore: 2, home: 'AUS', homeScore: 1, winner: 'away', live: true },
-  { status: 'FINAL', league: 'D3 MBB', away: 'UTD', awayScore: 74, home: 'UTT', homeScore: 69, winner: 'away' },
-  { status: 'FINAL/OT', league: 'MLB', away: 'TEX', awayScore: 6, home: 'HOU', homeScore: 5, winner: 'away' },
-  { status: 'FINAL', league: 'FB', away: 'OSU', awayScore: 30, home: 'BAY', homeScore: 20, winner: 'away' },
-  { status: 'LIVE · 2P 11:02', league: 'NHL', away: 'DAL', awayScore: 3, home: 'NSH', homeScore: 2, winner: 'away', live: true },
-  { status: 'FINAL', league: 'FB', away: 'TTU', awayScore: 28, home: 'KU', homeScore: 24, winner: 'away' },
-];
-
 export default function Home() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [approvedMedia, setApprovedMedia] = useState([]);
   const navigate = useNavigate();
+  const [games, setGames] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('sac_auth_token');
@@ -51,11 +38,62 @@ export default function Home() {
       .catch(err => console.error("Failed to load scroller media", err));
   }, []);
 
+  useEffect(() => {
+    const fetchScores = async () => {
+      try {
+        // Must use HTTPS to prevent mixed-content blocking on Vercel
+        const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard');
+        const data = await response.json();
+        
+        const tickerGames = data.events.map(event => {
+          const competition = event.competitions[0];
+          
+          // ESPN returns strings like "FINAL" or "3rd - 8:41"
+          const statusText = event.status.type.shortDetail; 
+          const isLive = event.status.type.state === 'in';
+          
+          const homeTeam = competition.competitors.find(team => team.homeAway === 'home');
+          const awayTeam = competition.competitors.find(team => team.homeAway === 'away');
+          
+          // Safely determine the winner for your CSS classes
+          let winner = null;
+          if (homeTeam.winner) winner = 'home';
+          else if (awayTeam.winner) winner = 'away';
+
+          return {
+            status: statusText.toUpperCase(),
+            league: 'CFB',
+            away: awayTeam.team.abbreviation,
+            awayScore: parseInt(awayTeam.score, 10),
+            home: homeTeam.team.abbreviation,
+            homeScore: parseInt(homeTeam.score, 10),
+            winner: winner,
+            live: isLive
+          };
+        });
+        
+        setGames(tickerGames);
+      } catch (error) {
+        console.error("Failed to fetch CFB scores:", error);
+      }
+    };
+
+    // Fetch immediately when the homepage loads
+    fetchScores();
+    
+    // Poll the ESPN endpoint every 60 seconds
+    const intervalId = setInterval(fetchScores, 60000);
+    
+    // Cleanup the interval if the component unmounts
+    return () => clearInterval(intervalId);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('sac_auth_token');
     setUserProfile(null);
     navigate('/');
   };
+
 
   const renderTickerItems = () => {
     return games.map((g, index) => (
