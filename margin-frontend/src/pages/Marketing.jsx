@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 import axios from 'axios';
 
 export default function Marketing() {
   const [userProfile, setUserProfile] = useState(null);
   const [pendingMedia, setPendingMedia] = useState([]);
+  const [featuredMedia, setFeaturedMedia] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
 
   // Upload Form State
@@ -15,6 +16,10 @@ export default function Marketing() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('sac_auth_token');
@@ -30,6 +35,56 @@ export default function Marketing() {
     }
   }, []);
 
+  // Fetch all currently approved (featured) media for scroller management
+  const fetchFeaturedMedia = async () => {
+    const token = localStorage.getItem('sac_auth_token');
+    if (!token) {
+      navigate('/portal');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/media/uploads/approved/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch featured media.');
+      const data = await res.json();
+      setFeaturedMedia(data.results || data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFeaturedMedia();
+  }, [navigate]);
+
+  // Handle removing an image from the scroller
+  const handleRemove = async (id) => {
+    const token = localStorage.getItem('sac_auth_token');
+    if (!token) return;
+
+    if (!window.confirm("Are you sure you want to remove this image from the scroller?")) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/media/uploads/${id}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Token ${token}` }
+      });
+
+      if (!res.ok) throw new Error('Failed to delete media item.');
+
+      // Remove from local state instantly
+      setFeaturedMedia(prev => prev.filter(item => item.id !== id));
+      setStatus({ type: 'success', message: 'Media successfully removed from scroller.' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const fetchPendingMedia = async () => {
     try {
       const token = localStorage.getItem('sac_auth_token');
@@ -40,7 +95,6 @@ export default function Marketing() {
         const data = await response.json();
         const items = data.results || data;
         
-        // KEEP ONLY ITEMS WHERE STATUS IS PENDING (case-insensitive check)
         const pending = items.filter(item => 
           item.status && item.status.toLowerCase().includes('pending')
         );
@@ -117,17 +171,18 @@ export default function Marketing() {
     }
   };
 
-  // --- Approval Wheel Handlers ---
+  // --- Approval Queue Handlers ---
   const handleApprove = async (mediaId) => {
     try {
       const token = localStorage.getItem('sac_auth_token');
       await axios.post(`${BASE_URL}/api/media/uploads/${mediaId}/review/`, 
-        { status: 'approved' }, // Send lowercase 'approved' to match database choices
+        { status: 'approved' }, 
         { headers: token ? { 'Authorization': `Token ${token}` } : {} }
       );
       
       setStatus({ type: 'success', message: 'Graphic approved! Added to homepage media scroller.' });
       fetchPendingMedia();
+      fetchFeaturedMedia(); // Refresh active list
     } catch (e) {
       console.error("Failed to approve media", e);
       setStatus({ type: 'error', message: 'Failed to update approval status.' });
@@ -138,7 +193,6 @@ export default function Marketing() {
   const handleReject = async (mediaId) => {
     try {
       const token = localStorage.getItem('sac_auth_token');
-      // Call the dedicated @action review endpoint
       await axios.post(`${BASE_URL}/api/media/uploads/${mediaId}/review/`, 
         { status: 'Rejected' }, 
         { headers: token ? { 'Authorization': `Token ${token}` } : {} }
@@ -193,7 +247,7 @@ export default function Marketing() {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 30px 0' }} />
 
-        {/* --- UPLOAD SECTION (Available to authenticated officers/members) --- */}
+        {/* --- UPLOAD SECTION --- */}
         <div style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '6px', padding: '24px', marginBottom: '40px' }}>
           <h3 style={{ marginTop: 0, color: 'var(--text)', fontSize: '18px', marginBottom: '16px' }}>Submit New Media</h3>
           
@@ -267,6 +321,63 @@ export default function Marketing() {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 30px 0' }} />
 
+        {/* --- ACTIVE FEATURED MEDIA MANAGEMENT (Marketing/Exec Only) --- */}
+        {hasAccess && (
+          <div style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: 'var(--accent)', marginBottom: '16px' }}>Currently Featured in Scroller ({featuredMedia.length})</h3>
+            {loading ? <p style={{ color: 'var(--text-dim)' }}>Loading featured assets...</p> : null}
+            
+            {!loading && featuredMedia.length === 0 && (
+              <p style={{ color: 'var(--text-dim)' }}>No photos are currently active in the homepage scroller.</p>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+              {featuredMedia.map((item) => {
+                let imageUrl = item.file;
+                if (imageUrl && !imageUrl.startsWith('http')) {
+                  imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
+                } else if (imageUrl) {
+                  imageUrl = imageUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/');
+                }
+
+                return (
+                  <div key={item.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ height: '160px', background: '#000', overflow: 'hidden' }}>
+                      <img src={imageUrl} alt={item.title || 'Scroller Asset'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'space-between' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', wordBreak: 'break-all' }}>{item.title || 'Untitled Asset'}</h4>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '16px' }}>
+                          Uploaded: {new Date(item.uploaded_at || Date.now()).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemove(item.id)}
+                        style={{
+                          background: '#8b0000',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '8px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          width: '100%',
+                          textAlign: 'center'
+                        }}
+                      >
+                        Remove from Scroller
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '30px 0 0 0' }} />
+          </div>
+        )}
+
         {/* --- APPROVAL QUEUE SECTION --- */}
         {!hasAccess && userProfile ? (
           <div style={{ padding: '40px', textAlign: 'center', background: 'var(--panel-2)', borderRadius: '4px', border: '1px solid var(--line)' }}>
@@ -281,38 +392,46 @@ export default function Marketing() {
               <p style={{ color: 'var(--text-dim)' }}>The media queue is currently empty.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-                {pendingMedia.map((media) => (
-                  <div key={media.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
-                    
-                    <div style={{ height: '160px', background: media.previewColor || '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: '12px', backgroundImage: media.file ? `url(${media.file})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                      {!media.file && '[ Image Preview ]'}
-                    </div>
-                    
-                    <div style={{ padding: '16px' }}>
-                      <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', wordBreak: 'break-all' }}>{media.filename || media.title || 'Untitled Asset'}</h4>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '16px' }}>
-                        Uploaded by {media.uploadedBy || media.uploaded_by_username || 'Officer'} • {media.date || media.created_at?.split('T')[0] || 'Recent'}
+                {pendingMedia.map((media) => {
+                  let imageUrl = media.file;
+                  if (imageUrl && !imageUrl.startsWith('http')) {
+                    imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
+                  } else if (imageUrl) {
+                    imageUrl = imageUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/');
+                  }
+
+                  return (
+                    <div key={media.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ height: '160px', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: '12px', backgroundImage: imageUrl ? `url(${imageUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        {!imageUrl && '[ Image Preview ]'}
                       </div>
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <button 
-                          onClick={() => handleApprove(media.id)} 
-                          className="btn-primary" 
-                          style={{ padding: '8px', fontSize: '12px', justifyContent: 'center' }}
-                        >
-                          Approve
-                        </button>
-                        <button 
-                          onClick={() => handleReject(media.id)} 
-                          className="btn-ghost" 
-                          style={{ padding: '8px', fontSize: '12px', justifyContent: 'center', borderColor: 'var(--red)', color: 'var(--red)' }}
-                        >
-                          Reject
-                        </button>
+                      <div style={{ padding: '16px' }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', wordBreak: 'break-all' }}>{media.filename || media.title || 'Untitled Asset'}</h4>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '16px' }}>
+                          Uploaded by {media.uploadedBy || media.uploaded_by_username || 'Officer'} • {media.date || media.created_at?.split('T')[0] || 'Recent'}
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <button 
+                            onClick={() => handleApprove(media.id)} 
+                            className="btn-primary" 
+                            style={{ padding: '8px', fontSize: '12px', justifyContent: 'center' }}
+                          >
+                            Approve
+                          </button>
+                          <button 
+                            onClick={() => handleReject(media.id)} 
+                            className="btn-ghost" 
+                            style={{ padding: '8px', fontSize: '12px', justifyContent: 'center', borderColor: 'var(--red)', color: 'var(--red)' }}
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>

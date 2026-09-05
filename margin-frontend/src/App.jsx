@@ -6,6 +6,7 @@ import Secretary from './pages/Secretary';
 import Events from './pages/Events';
 import Marketing from './pages/Marketing';
 import Projects from './pages/Projects';
+import Rnd from './pages/Rnd';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/marketing" element={<Marketing />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/rnd" element={<Rnd />} />
       </Routes>
     </Router>
   );
