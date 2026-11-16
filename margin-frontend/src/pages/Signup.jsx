@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BASE_URL } from '../config';
@@ -43,14 +45,13 @@ export default function Signup() {
       });
 
       const data = await response.json();
-      console.log("DJANGO REJECTION REASON:", data);
 
       if (response.ok) {
         setIsSuccess(true);
       } else {
         setStatus({ type: 'error', message: data.error || data.detail || 'Failed to create account.' });
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', message: 'Network error connecting to the backend.' });
     }
   };
@@ -76,22 +77,22 @@ export default function Signup() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username">Username</label>
-            <input type="text" name="username" value={formData.username} onChange={handleChange} required />
+            <Input type="text" id="username" name="username" value={formData.username} onChange={handleChange} required />
           </div>
           
           <div className="form-group">
             <label htmlFor="email">Student Email</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+            <Input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+              <Input type="password" id="password" name="password" value={formData.password} onChange={handleChange} required />
             </div>
             <div className="form-group">
               <label htmlFor="passwordConfirm">Confirm Password</label>
-              <input type="password" name="passwordConfirm" value={formData.passwordConfirm} onChange={handleChange} required />
+              <Input type="password" id="passwordConfirm" name="passwordConfirm" value={formData.passwordConfirm} onChange={handleChange} required />
             </div>
           </div>
 
@@ -99,13 +100,13 @@ export default function Signup() {
 
           <div className="form-group">
             <label htmlFor="fullName">Full Name</label>
-            <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
+            <Input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label htmlFor="grade">Grade</label>
-              <select name="grade" value={formData.grade} onChange={handleChange} required>
+              <select id="grade" name="grade" value={formData.grade} onChange={handleChange} required>
                 <option value="" disabled>Select year...</option>
                 <option value="Freshman">Freshman</option>
                 <option value="Sophomore">Sophomore</option>
@@ -117,32 +118,32 @@ export default function Signup() {
             
             <div className="form-group">
               <label htmlFor="major">Major</label>
-              <input type="text" name="major" value={formData.major} onChange={handleChange} placeholder="e.g., Statistics, Finance..." required />
+              <Input type="text" id="major" name="major" value={formData.major} onChange={handleChange} placeholder="e.g., Statistics, Finance..." required />
             </div>
           </div>
 
           <div className="form-group">
             <label htmlFor="interests">Analytics Interests</label>
-            <input type="text" name="interests" value={formData.interests} onChange={handleChange} required />
+            <Input type="text" id="interests" name="interests" value={formData.interests} onChange={handleChange} required />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label htmlFor="favoriteSport">Favorite Sport</label>
-              <input type="text" name="favoriteSport" value={formData.favoriteSport} onChange={handleChange} required />
+              <Input type="text" id="favoriteSport" name="favoriteSport" value={formData.favoriteSport} onChange={handleChange} required />
             </div>
             <div className="form-group">
               <label htmlFor="favoriteTeam">Favorite Team</label>
-              <input type="text" name="favoriteTeam" value={formData.favoriteTeam} onChange={handleChange} required />
+              <Input type="text" id="favoriteTeam" name="favoriteTeam" value={formData.favoriteTeam} onChange={handleChange} required />
             </div>
           </div>
 
-          <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}>
+          <Button type="submit" disabled={status.type === 'loading'} style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}>
             Submit Application
-          </button>
+          </Button>
           
           {status.message && (
-            <div className="error-text" style={{ color: status.type === 'error' ? 'var(--red)' : 'var(--text-dim)' }}>
+            <div role="status" className="error-text" style={{ color: status.type === 'error' ? 'var(--red)' : 'var(--text-dim)' }}>
               {status.message}
             </div>
           )}

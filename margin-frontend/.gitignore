@@ -31,3 +31,5 @@ accounts/migrations
 # Migrations note:
 # We ARE committing migrations (don't ignore them) — they're the source
 # of truth for the DB schema and need to be shared/reviewed in PRs.
+node_modules/
+dist/
