@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
+import { ArrowUpRight, ArrowRight, Menu, Activity, Users, Code2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 export default function Home() {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -17,8 +22,7 @@ export default function Home() {
       })
       .then(res => {
         if (!res.ok) {
-          // If token is invalid/expired, clear it so it stops spamming
-          localStorage.removeItem('sac_auth_token');
+          if (res.status === 401 || res.status === 403) localStorage.removeItem('sac_auth_token');
           throw new Error('Invalid token');
         }
         return res.json();
@@ -26,14 +30,14 @@ export default function Home() {
       .then(data => {
         if (data.id) setUserProfile(data);
       })
-      .catch(err => console.log("Session cleared or invalid token."));
+      .catch(() => {});
     }
 
     // Fetch approved media for the homepage scroller
     fetch(`${BASE_URL}/api/media/uploads/approved/`)
-      .then(res => res.json())
+      .then(res => { if (!res.ok) throw new Error('Media unavailable'); return res.json(); })
       .then(data => {
-        setApprovedMedia(data.results || data);
+        setApprovedMedia(Array.isArray(data.results || data) ? (data.results || data) : []);
       })
       .catch(err => console.error("Failed to load scroller media", err));
   }, []);
@@ -88,7 +92,8 @@ export default function Home() {
                 home: homeTeam?.team?.abbreviation || 'TBD',
                 homeScore: parseInt(homeTeam?.score || 0, 10),
                 winner: winner,
-                live: isLive
+                live: isLive,
+                scheduled: event.status?.type?.state === 'pre'
               };
             });
           } catch (err) {
@@ -100,9 +105,7 @@ export default function Home() {
         const results = await Promise.all(promises);
         const allGames = results.flat();
         
-        if (allGames.length > 0) {
-          setGames(allGames);
-        }
+        setGames(allGames);
       } catch (error) {
         console.error("Failed to fetch sports scores:", error);
       }
@@ -120,366 +123,81 @@ export default function Home() {
   };
 
 
-  const renderTickerItems = () => {
-    return games.map((g, index) => (
-      <div className="ticker-item" key={index}>
-        <span className={`ticker-status ${g.live ? 'live' : 'final'}`}>{g.status}</span>
-        <span style={{ color: 'var(--text-dim)' }}>{g.league}</span>
-        <span className={`team ${g.winner === 'away' ? 'win' : ''}`}>{g.away}</span>
-        <span className={`score ${g.winner === 'away' ? 'win' : ''}`}>{g.awayScore}</span>
-        <span style={{ color: 'var(--text-dim)' }}>–</span>
-        <span className={`score ${g.winner === 'home' ? 'win' : ''}`}>{g.homeScore}</span>
-        <span className={`team ${g.winner === 'home' ? 'win' : ''}`}>{g.home}</span>
-      </div>
-    ));
-  };
+  const portalLinks = userProfile ? [
+    ['/events', 'Events'], ['/projects', 'Projects'],
+    ...(['exec', 'director_rnd', 'officer_rnd'].includes(userProfile.role) || userProfile.is_superuser ? [['/rnd', 'R&D portal']] : []),
+    ...(['exec', 'director_marketing'].includes(userProfile.role) ? [['/marketing', 'Marketing']] : []),
+    ...(['exec', 'director_secretary'].includes(userProfile.role) ? [['/secretary', 'Secretary']] : []),
+  ] : [];
+
+  const navigation = <>
+    <a href="#work" onClick={() => setIsNavOpen(false)}>Our work</a>
+    <a href="#community" onClick={() => setIsNavOpen(false)}>Community</a>
+    {portalLinks.map(([to, label]) => <Link key={to} to={to} onClick={() => setIsNavOpen(false)}>{label}</Link>)}
+    {userProfile ? <Button variant="outline" onClick={handleLogout}>Log out</Button> : <>
+      <Button variant="ghost" asChild><Link to="/portal">Log in</Link></Button>
+      <Button asChild><Link to="/signup">Join the club <ArrowUpRight /></Link></Button>
+    </>}
+  </>;
 
   return (
-    <>
-      {/* ================= NAVBAR ================= */}
-      <header className="navbar">
-        <div className="wrap">
-          <a href="#top" className="brand">
-            <img src="/SAC Submark Logo Light.png" alt="SAC Submark" style={{ width: '36px', height: '36px' }} />
-            <span>SAC UTD<small>SPORTS ANALYTICS CLUB</small></span>
-          </a>
-
-          <nav className={`nav-links ${isNavOpen ? 'open' : ''}`} id="navLinks">
-            <a href="#reports" onClick={() => setIsNavOpen(false)}>Reports</a>
-            <a href="#scroller" onClick={() => setIsNavOpen(false)}>Media</a>
-            <a href="#numbers" onClick={() => setIsNavOpen(false)}>By The Numbers</a>
-            
-            {userProfile ? (
-              <>
-                <Link to="/events" onClick={() => setIsNavOpen(false)}>Events</Link>
-                <Link to="/projects" onClick={() => setIsNavOpen(false)}>Projects</Link>
-
-                {(userProfile.role === 'exec' || userProfile.role === 'director_rnd' || userProfile.role === 'officer_rnd' || userProfile.is_superuser) && (
-                  <Link to="/Rnd" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>
-                    R&D Portal
-                  </Link>
-                )}
-                {(userProfile.role === 'director_marketing' || userProfile.role === 'exec') && (
-                  <Link to="/marketing" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Marketing</Link>
-                )}
-                {(userProfile.role === 'director_secretary' || userProfile.role === 'exec') && (
-                  <Link to="/secretary" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Secretary</Link>
-                )}
-
-                <button onClick={handleLogout} className="nav-cta" style={{ display: 'inline-flex' }}>
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/portal" onClick={() => setIsNavOpen(false)}>Login</Link>
-                <Link to="/signup" className="nav-cta" style={{ display: 'inline-flex' }}>Join The Club</Link>
-              </>
-            )}
-          </nav>
-
-          {!userProfile && (
-            <Link to="/signup" className="nav-cta nav-cta-mobile">Join The Club</Link>
-          )}
-          
-          <button 
-            className="nav-toggle" 
-            onClick={() => setIsNavOpen(!isNavOpen)} 
-            aria-label="Toggle menu"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+    <div className="club-site">
+      <a href="#main-content" className="skip-link">Skip to content</a>
+      <header className="club-header">
+        <div className="club-wrap flex min-h-20 items-center justify-between gap-6">
+          <Link to="/" className="flex items-center gap-3" aria-label="SAC UTD home">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-neutral-900"><img src="/SAC Submark Logo Light.png" alt="" className="size-8 object-contain" /></span>
+            <span className="text-sm font-semibold tracking-tight">Sports Analytics Club<span className="block text-xs font-normal text-muted-foreground">The University of Texas at Dallas</span></span>
+          </Link>
+          <nav aria-label="Main navigation" className="hidden items-center gap-6 text-sm text-muted-foreground xl:flex">{navigation}</nav>
+          <Sheet open={isNavOpen} onOpenChange={setIsNavOpen}>
+            <SheetTrigger asChild><Button variant="outline" size="icon" className="xl:hidden" aria-label="Open navigation"><Menu /></Button></SheetTrigger>
+            <SheetContent className="club-site">
+              <SheetHeader><SheetTitle>SAC UTD</SheetTitle><SheetDescription>Explore the club and your member resources.</SheetDescription></SheetHeader>
+              <nav aria-label="Mobile navigation" className="flex flex-col gap-5 p-6 text-sm">{navigation}</nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
-
-      {/* ================= SCORE TICKER ================= */}
-      <div className="ticker" id="top">
-        <div className="ticker-track">
-          {renderTickerItems()}
-          {renderTickerItems()}
-        </div>
-      </div>
-
-      {/* ================= HERO ================= */}
-      <section className="hero" style={{ borderBottom: '1px solid var(--line)', paddingBottom: '80px' }}>
-        <div className="wrap">
+      <main id="main-content">
+        <section className="club-wrap grid gap-12 py-20 lg:grid-cols-[1.35fr_1fr] lg:items-center lg:py-28">
           <div>
-            <div className="eyebrow">Est. 2024 · Campus Analytics Collective</div>
-            <h1>We read the box score<br />before it's <em>final.</em></h1>
-            <p className="lede">SAC UTD is the campus club where students build models, argue about win probability, and publish the numbers that explain why teams actually win — or don't.</p>
-            <div className="hero-actions">
-              <a href="#reports" className="btn-primary">Read latest report →</a>
-            </div>
+            <Badge variant="outline" className="mb-7 gap-2 font-normal"><span className="size-1.5 rounded-full bg-orange-700" />Student-led. Sports-obsessed.</Badge>
+            <h1 className="max-w-2xl text-5xl font-semibold leading-[1.08] tracking-[-0.045em] sm:text-6xl">A better question.<br /><span className="text-muted-foreground">A different game.</span></h1>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground">We’re UT Dallas students using data to understand sports. Build a model, explore a new idea, and find people who care about the details as much as you do.</p>
+            <div className="mt-8 flex flex-wrap gap-3"><Button size="lg" asChild><Link to={userProfile ? '/projects' : '/signup'}>{userProfile ? 'Open your projects' : 'Find your team'}<ArrowRight /></Link></Button><Button size="lg" variant="outline" asChild><a href="#work">Explore our work</a></Button></div>
+            <p className="mt-5 text-xs text-muted-foreground">All majors welcome. Curiosity is a good place to start.</p>
           </div>
-
-          <div className="stat-panel">
-            <div className="stat-panel-head">
-              <span><span className="dot">●</span> LIVE MODEL OUTPUT</span>
-              <span>WK 2</span>
+          <Card className="overflow-hidden shadow-none">
+            <div className="court-art" aria-hidden="true"><div className="court-center" /><div className="court-key court-key-left" /><div className="court-key court-key-right" /><span className="court-ball" /></div>
+            <CardHeader><div className="flex items-center justify-between"><Badge variant="secondary">Featured project</Badge><span className="text-xs text-muted-foreground">Basketball</span></div><CardTitle className="mt-3 text-xl">March Madness Predictor</CardTitle><CardDescription className="leading-relaxed">From historical games to tournament probabilities. Explore the models, the assumptions, and the code behind our brackets.</CardDescription></CardHeader>
+            <CardContent><Button variant="outline" asChild><a href="https://github.com/Sports-Analytics-Club-at-UTD/March-Madness-Predictor" target="_blank" rel="noreferrer">Explore the project<ArrowUpRight /></a></Button></CardContent>
+          </Card>
+        </section>
+        <section id="work" className="border-y bg-muted/40 py-16 sm:py-20">
+          <div className="club-wrap">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground">Built by students</p><h2 className="text-3xl font-semibold tracking-tight">More than a box score.</h2></div><Button variant="ghost" asChild><a href="https://github.com/Sports-Analytics-Club-at-UTD" target="_blank" rel="noreferrer">All projects<ArrowUpRight /></a></Button></div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ['F1-Telemetry-Project', 'Motorsport', 'F1 telemetry', 'Explore the data behind the lap.'],
+                ['Soccer-Impact-Engine-Index', 'Soccer', 'Player impact', 'Investigate how players contribute to a team.'],
+                ['MLB-Pitch-Repertoire-Design-Movement-Classifier', 'Baseball', 'Pitch repertoire', 'Study pitch movement and repertoire design.'],
+              ].map(([repo, sport, title, description]) => <Card key={repo} className="shadow-none"><CardHeader><span className="mb-5 text-xs text-muted-foreground">{sport}</span><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader><CardContent><Button variant="link" className="h-auto p-0" asChild><a href={'https://github.com/Sports-Analytics-Club-at-UTD/' + repo} target="_blank" rel="noreferrer">View repository<ArrowUpRight /></a></Button></CardContent></Card>)}
             </div>
-            <div className="stat-row">
-              <span className="stat-label">Win probability model, accuracy</span>
-              <span className="stat-value up mono">71.4%</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Active predictive models</span>
-              <span className="stat-value mono">12</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Reports published this season</span>
-              <span className="stat-value mono">38</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Club members</span>
-              <span className="stat-value mono">64</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= REPORTS ================= */}
-      <section id="reports">
-        <div className="wrap">
-          <div className="section-head">
-            <div>
-              <div className="section-tag">01 / LATEST WORK</div>
-              <h2>Recent reports</h2>
-            </div>
-            <a href="#" className="section-link">View all reports →</a>
-          </div>
-
-          <div className="card-grid">
-            <div className="card">
-              <span className="card-tag">Basketball · Model</span>
-              <h3>Placeholder headline — swap in your first published report title</h3>
-              <p>Short summary goes here. Describe the question the analysis answers and the headline finding in one or two sentences.</p>
-              <div className="card-meta"><span>By Member Name</span><span>MMM DD</span></div>
-            </div>
-            <div className="card">
-              <span className="card-tag">Football · Deep Dive</span>
-              <h3>Placeholder headline — swap in your second report title</h3>
-              <p>Short summary goes here. Describe the question the analysis answers and the headline finding in one or two sentences.</p>
-              <div className="card-meta"><span>By Member Name</span><span>MMM DD</span></div>
-            </div>
-            <div className="card">
-              <span className="card-tag">Baseball · Notebook</span>
-              <h3>Placeholder headline — swap in your third report title</h3>
-              <p>Short summary goes here. Describe the question the analysis answers and the headline finding in one or two sentences.</p>
-              <div className="card-meta"><span>By Member Name</span><span>MMM DD</span></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= CLUB HIGHLIGHTS ================= */}
-      {approvedMedia.length > 0 && (
-        <section style={{ 
-          background: 'var(--bg)', 
-          borderTop: '1px solid var(--line)', 
-          borderBottom: '1px solid var(--line)', 
-          padding: '40px 0',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            display: 'flex',
-            gap: '24px',
-            overflowX: 'auto',
-            padding: '0 24px',
-            scrollSnapType: 'x mandatory',
-            scrollbarWidth: 'none', // Hides scrollbar on Firefox
-            msOverflowStyle: 'none',  // Hides scrollbar on IE/Edge
-          }}>
-            <style>{`
-              /* Hides scrollbar for Chrome, Safari and Opera */
-              section div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-            
-            {approvedMedia.map((item) => {
-              // Construct clean public URL without nested bucket folder duplication
-              // Replace this block in your .map((item) => { ... }) loop:
-              let imageUrl = item.file;
-              if (imageUrl) {
-                if (!imageUrl.startsWith('http')) {
-                  // Relative path from django-storages
-                  imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
-                } else {
-                  // If django-storages returned an absolute URL using the /s3/ endpoint, swap it to public
-                  imageUrl = imageUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/');
-                }
-              }
-
-              return (
-                <div key={item.id} style={{ 
-                  minWidth: '320px', 
-                  maxWidth: '320px', 
-                  height: '200px',
-                  flex: '0 0 auto', 
-                  background: 'var(--panel)', 
-                  border: '1px solid var(--line)', 
-                  borderRadius: '6px', 
-                  overflow: 'hidden', 
-                  scrollSnapAlign: 'start',
-                  position: 'relative'
-                }}>
-                  <img 
-                    src={imageUrl} 
-                    alt="Club Highlight" 
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover', 
-                      display: 'block' 
-                    }}
-                    onError={(e) => {
-                      e.target.parentElement.style.display = 'none'; // Gracefully hides if an asset fails to load
-                    }}
-                  />
-                </div>
-              );
-            })}
           </div>
         </section>
-      )}
-
-      {/* ================= BY THE NUMBERS ================= */}
-      <section id="numbers">
-        <div className="wrap">
-          <div className="section-head">
-            <div>
-              <div className="section-tag">03 / THE CLUB IN STATS</div>
-              <h2>By the numbers</h2>
-            </div>
+        {approvedMedia.length > 0 && <section id="media" className="club-wrap py-16"><h2 className="mb-6 text-2xl font-semibold tracking-tight">Around the club</h2><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{approvedMedia.filter(item => item.file).map(item => {
+          const imageUrl = item.file.startsWith('http') ? item.file.replace('/storage/v1/s3/', '/storage/v1/object/public/') : 'https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/' + item.file;
+          return <img key={item.id} src={imageUrl} alt={item.title || 'Club highlight'} loading="lazy" className="aspect-video w-full rounded-xl border object-cover" />;
+        })}</div></section>}
+        <section id="community" className="club-wrap py-16 sm:py-20">
+          <div className="grid gap-12 lg:grid-cols-2"><div><p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground">Find your people</p><h2 className="text-3xl font-semibold tracking-tight">Bring your curiosity.<br />We’ll bring the conversation.</h2><p className="mt-5 max-w-md leading-relaxed text-muted-foreground">Trade ideas, work through a dataset, or debate a call. There’s room here for your first notebook and your next big project.</p><div className="mt-7 flex flex-wrap gap-3"><Button asChild><a href="https://discord.gg/yrEzMR9rn" target="_blank" rel="noreferrer">Join our Discord<ArrowUpRight /></a></Button><Button variant="outline" asChild><a href="https://www.instagram.com/sacutd/" target="_blank" rel="noreferrer">Instagram<ArrowUpRight /></a></Button></div></div>
+          <div className="divide-y">{[[Users, 'Learn together', 'Meet students across majors who share your interest in sports.'], [Code2, 'Make something real', 'Work with data and contribute to open club projects.'], [Activity, 'Follow the questions', 'Test an idea, share what you found, and keep improving.']].map(([Icon, title, description]) => <div key={title} className="flex gap-4 py-5 first:pt-0"><Icon className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden="true" /><div><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p></div></div>)}</div>
           </div>
-
-          <div className="numbers-strip mono">
-            <div>
-              <div className="big">64</div>
-              <div className="label">Active members</div>
-            </div>
-            <div>
-              <div className="big">12</div>
-              <div className="label">Models in production</div>
-            </div>
-            <div>
-              <div className="big">6</div>
-              <div className="label">Varsity sports covered</div>
-            </div>
-            <div>
-              <div className="big">3</div>
-              <div className="label">Conference partnerships</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= COMMUNITY & SOCIALS ================= */}
-      <section id="community" style={{ padding: '60px 0', borderTop: '1px solid var(--line)', background: 'var(--bg)' }}>
-        <div className="wrap" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}>
-          
-          <div className="section-head" style={{ marginBottom: '30px' }}>
-            <div>
-              <div className="section-tag">04 / COMMUNITY FEED</div>
-              <h2>Stay connected</h2>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-            
-            {/* --- LIVE DISCORD WIDGET CARD --- */}
-            <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ background: '#5865F2', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>DISCORD</span>
-                    <span style={{ fontSize: '13px', color: 'var(--text-dim)' }}>Community Server</span>
-                  </div>
-                  <a href="https://discord.gg/yrEzMR9rn" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none' }}>
-                    Invite Link ↗
-                  </a>
-                </div>
-
-                {/* Official Discord Widget iFrame (Replace YOUR_SERVER_ID with your actual Discord Server ID) */}
-                <div style={{ width: '100%', height: '280px', borderRadius: '6px', overflow: 'hidden', background: 'var(--panel-2)', border: '1px solid var(--line)' }}>
-                  <iframe 
-                    src="https://discord.com/widget?id=YOUR_SERVER_ID&theme=dark" 
-                    width="100%" 
-                    height="100%" 
-                    allowTransparency="true" 
-                    frameBorder="0" 
-                    sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
-                    title="Discord Community Widget"
-                  ></iframe>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
-                Active discussions, model development channels, and match day threads.
-              </div>
-            </div>
-
-            {/* --- INSTAGRAM FEED CARD --- */}
-            <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>INSTAGRAM</span>
-                    <span style={{ fontSize: '13px', color: 'var(--text-dim)' }}>@sacutd</span>
-                  </div>
-                  <a href="https://www.instagram.com/sacutd/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none' }}>
-                    Follow ↗
-                  </a>
-                </div>
-                
-                {/* Visual Preview Box linked to latest post output */}
-                <div style={{ height: '220px', background: 'var(--panel-2)', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--line)', position: 'relative' }}>
-                  <img src="/SAC Submark Logo Light.png" alt="SAC Instagram Visual Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.75)', padding: '10px 14px', backdropFilter: 'blur(4px)' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      📊 Data deep-dive on win probabilities & sports analytics graphics.
-                    </p>
-                  </div>
-                </div>
-
-                <p style={{ margin: '0', fontSize: '13px', color: 'var(--text-dim)', lineHeight: '1.4' }}>
-                  Catch our latest commitment graphics, match-day previews, and visual media breakdowns on the official profile.
-                </p>
-              </div>
-
-              <a 
-                href="https://www.instagram.com/sacutd/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn-primary"
-                style={{ marginTop: '20px', textAlign: 'center', justifyContent: 'center', background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)', borderColor: 'transparent' }}
-              >
-                View Full Feed on Instagram →
-              </a>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ================= FOOTER ================= */}
-      <footer>
-        <div className="wrap">
-          <div className="brand">
-            <img src="/SAC Banner Light.png" alt="SAC UTD Banner" style={{ height: '28px' }} />
-          </div>
-          <div className="foot-links">
-            <a href="#reports">Reports</a>
-            <a href="#scroller">Media</a>
-            <a href="#numbers">By The Numbers</a>
-          </div>
-          <div className="foot-meta">© 2026 SAC UTD</div>
-        </div>
-      </footer>
-    </>
+        </section>
+        {games.length > 0 && <section className="border-t bg-muted/40 py-8" aria-label="Sports scoreboard"><div className="club-wrap"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold">Around the leagues</h2><span className="text-xs text-muted-foreground">ESPN · updates every minute</span></div><div className="flex gap-3 overflow-x-auto pb-2" tabIndex={0} aria-label="Scroll scores">{games.map((game, index) => <div className="min-w-52 rounded-lg border bg-card p-4 text-sm" key={index}><div className="mb-3 flex justify-between gap-3 text-[10px] text-muted-foreground"><span>{game.league}</span><span className={game.live ? 'text-orange-700' : ''}>{game.status}</span></div><div className="flex justify-between"><span>{game.away}</span><span className="tabular-nums">{game.scheduled ? '—' : game.awayScore}</span></div><div className="mt-1 flex justify-between"><span>{game.home}</span><span className="tabular-nums">{game.scheduled ? '—' : game.homeScore}</span></div></div>)}</div></div></section>}
+      </main>
+      <footer className="border-t py-8"><div className="club-wrap flex flex-wrap items-center justify-between gap-5 text-xs text-muted-foreground"><span>Sports Analytics Club · UT Dallas</span><div className="flex gap-6"><a href="https://github.com/Sports-Analytics-Club-at-UTD">GitHub</a><a href="https://www.instagram.com/sacutd/">Instagram</a><span>© {new Date().getFullYear()} SAC UTD</span></div></div></footer>
+    </div>
   );
 }

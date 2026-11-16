@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
@@ -39,7 +41,7 @@ export default function Login() {
         // Change this line in your handleLogin catch/else block:
       setStatus({ type: 'error', message: data.non_field_errors?.[0] || data.detail || JSON.stringify(data) });
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', message: 'Network error connecting to the backend.' });
     }
   };
@@ -53,18 +55,18 @@ export default function Login() {
         <form onSubmit={handleLogin}>
           <div className="form-group">
             <label htmlFor="username">Username</label>
-            <input type="text" name="username" value={credentials.username} onChange={handleChange} required />
+            <Input type="text" id="username" name="username" value={credentials.username} onChange={handleChange} required />
           </div>
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input type="password" name="password" value={credentials.password} onChange={handleChange} required />
+            <Input type="password" id="password" name="password" value={credentials.password} onChange={handleChange} required />
           </div>
-          <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+          <Button type="submit" disabled={status.type === 'loading'} style={{ width: '100%', justifyContent: 'center' }}>
             Authenticate
-          </button>
+          </Button>
           
           {status.message && (
-            <div className="error-text" style={{ color: status.type === 'error' ? 'var(--red)' : 'var(--text-dim)' }}>
+            <div role="status" className="error-text" style={{ color: status.type === 'error' ? 'var(--red)' : 'var(--text-dim)' }}>
               {status.message}
             </div>
           )}
