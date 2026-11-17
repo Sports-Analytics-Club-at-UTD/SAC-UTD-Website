@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 import axios from 'axios';
@@ -36,7 +36,7 @@ export default function Marketing() {
   }, []);
 
   // Fetch all currently approved (featured) media for scroller management
-  const fetchFeaturedMedia = async () => {
+  const fetchFeaturedMedia = useCallback(async () => {
     const token = localStorage.getItem('sac_auth_token');
     if (!token) {
       navigate('/portal');
@@ -55,11 +55,13 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
+    // State is only set after the fetch resolves, not synchronously in the effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFeaturedMedia();
-  }, [navigate]);
+  }, [fetchFeaturedMedia]);
 
   // Handle removing an image from the scroller
   const handleRemove = async (id) => {
@@ -85,7 +87,7 @@ export default function Marketing() {
     }
   };
 
-  const fetchPendingMedia = async () => {
+  async function fetchPendingMedia() {
     try {
       const token = localStorage.getItem('sac_auth_token');
       const response = await fetch(`${BASE_URL}/api/media/uploads/`, {
@@ -104,7 +106,7 @@ export default function Marketing() {
     } catch (err) {
       console.error("Failed to fetch media queue", err);
     }
-  };
+  }
 
   // --- File Selection Handlers ---
   const handleFileSelect = (selectedFile) => {
@@ -326,6 +328,7 @@ export default function Marketing() {
           <div style={{ marginBottom: '40px' }}>
             <h3 style={{ color: 'var(--accent)', marginBottom: '16px' }}>Currently Featured in Scroller ({featuredMedia.length})</h3>
             {loading ? <p style={{ color: 'var(--text-dim)' }}>Loading featured assets...</p> : null}
+            {error && <p style={{ color: 'var(--red)', fontSize: '13px' }}>{error}</p>}
             
             {!loading && featuredMedia.length === 0 && (
               <p style={{ color: 'var(--text-dim)' }}>No photos are currently active in the homepage scroller.</p>
@@ -349,7 +352,7 @@ export default function Marketing() {
                       <div>
                         <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', wordBreak: 'break-all' }}>{item.title || 'Untitled Asset'}</h4>
                         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '16px' }}>
-                          Uploaded: {new Date(item.uploaded_at || Date.now()).toLocaleDateString()}
+                          Uploaded: {item.uploaded_at ? new Date(item.uploaded_at).toLocaleDateString() : 'Unknown'}
                         </div>
                       </div>
                       <button

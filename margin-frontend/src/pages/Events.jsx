@@ -30,7 +30,7 @@ export default function Events() {
     }
   }, []);
 
-const fetchEvents = async () => {
+  async function fetchEvents() {
     const token = localStorage.getItem('sac_auth_token'); 
     
     const dummyEvents = [
@@ -59,10 +59,10 @@ const fetchEvents = async () => {
       } else {
         setEvents(dummyEvents);
       }
-    } catch (err) {
+    } catch {
       setEvents(dummyEvents);
     }
-  };
+  }
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -93,7 +93,7 @@ const fetchEvents = async () => {
         const data = await response.json();
         setStatus({ type: 'error', message: data.error || 'Failed to create event.' });
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', message: 'Network error connecting to backend.' });
     }
   };

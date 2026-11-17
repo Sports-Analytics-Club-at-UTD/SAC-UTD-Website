@@ -4,7 +4,6 @@ import { BASE_URL } from '../config';
 
 export default function Projects() {
   const [userProfile, setUserProfile] = useState(null);
-  const [status, setStatus] = useState({ type: '', message: '' });
 
   // Initial Kanban state with dummy club tasks
   const [tasks, setTasks] = useState([
