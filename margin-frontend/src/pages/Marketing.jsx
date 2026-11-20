@@ -165,7 +165,7 @@ export default function Marketing() {
       setTimeout(() => setStatus({ type: '', message: '' }), 4000);
     } catch (err) {
       console.error(err);
-      setUploadError('Failed to upload media. Check permissions and try again.');
+      setUploadError(err.response?.data?.file?.[0] || 'Failed to upload media. Check permissions and try again.');
     } finally {
       setUploading(false);
     }
@@ -349,7 +349,7 @@ export default function Marketing() {
                       <div>
                         <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', wordBreak: 'break-all' }}>{item.title || 'Untitled Asset'}</h4>
                         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '16px' }}>
-                          Uploaded: {new Date(item.uploaded_at || Date.now()).toLocaleDateString()}
+                          Uploaded: {new Date(item.created_at).toLocaleDateString()}
                         </div>
                       </div>
                       <button
