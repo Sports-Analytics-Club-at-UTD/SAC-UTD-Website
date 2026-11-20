@@ -1,9 +1,12 @@
+import os
+
 from rest_framework import serializers
 
 from .models import MediaUpload
 
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # Supabase free-tier per-file limit
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".mov", ".webm"}
 
 
 class MediaUploadSerializer(serializers.ModelSerializer):
@@ -20,7 +23,11 @@ class MediaUploadSerializer(serializers.ModelSerializer):
 
     def validate_file(self, file):
         # Files are served publicly from the bucket, so only accept images/videos.
-        if file and not (file.content_type or "").startswith(("image/", "video/")):
+        # content_type is client-supplied, so the extension is checked too.
+        if file and (
+            not (file.content_type or "").startswith(("image/", "video/"))
+            or os.path.splitext(file.name)[1].lower() not in ALLOWED_EXTENSIONS
+        ):
             raise serializers.ValidationError("Only image or video files can be uploaded.")
         if file and file.size > MAX_UPLOAD_BYTES:
             raise serializers.ValidationError("File is larger than 50 MB.")

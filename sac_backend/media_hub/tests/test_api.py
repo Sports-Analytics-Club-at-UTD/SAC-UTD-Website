@@ -124,3 +124,6 @@ class MediaUploadWorkflowTests(APITestCase):
 
         script = SimpleUploadedFile("evil.html", b"<script>", content_type="text/html")
         self.assertEqual(self.client.post(url, {"title": "bad", "file": script}).status_code, 400)
+
+        disguised = SimpleUploadedFile("evil.html", b"<script>", content_type="image/png")
+        self.assertEqual(self.client.post(url, {"title": "bad", "file": disguised}).status_code, 400)
