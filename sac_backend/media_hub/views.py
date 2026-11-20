@@ -1,10 +1,9 @@
-from rest_framework import generics, permissions, viewsets
-from rest_framework.decorators import action, permission_classes
+from rest_framework import permissions, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import api_view
 
 from accounts.models import Role
+from accounts.permissions import IsApprovedUser
 from .models import MediaUpload
 from .serializers import MediaReviewSerializer, MediaUploadSerializer
 
@@ -31,7 +30,7 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = MediaUploadSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsApprovedUser, IsMarketingDirectorOrOwner]
 
     def get_queryset(self):
         user = self.request.user
@@ -48,12 +47,6 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)
-
-    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
-    def approved(self, request):
-        qs = MediaUpload.objects.filter(status=MediaUpload.Status.APPROVED).order_by("display_order")
-        serializer = MediaUploadSerializer(qs, many=True, context={"request": request})
-        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def review(self, request, pk=None):
@@ -72,17 +65,3 @@ class MediaUploadViewSet(viewsets.ModelViewSet):
         qs = MediaUpload.objects.filter(status__iexact="Approved").order_by("display_order", "-created_at")
         serializer = MediaUploadSerializer(qs, many=True, context={"request": request})
         return Response(serializer.data)
-
-    @api_view(['DELETE'])
-    def delete_media_upload(request, pk):
-        # Verify the user has marketing permissions or is an exec
-        if request.user.role not in ['director_marketing', 'exec']:
-            return Response({"error": "Unauthorized to delete media."}, status=403)
-        
-        try:
-            media_item = MediaUpload.objects.get(pk=pk)
-            # Optional: You can also delete the physical file from Supabase storage here if desired
-            media_item.delete()
-            return Response({"message": "Media deleted successfully."})
-        except MediaUpload.DoesNotExist:
-            return Response({"error": "Media item not found."}, status=404)
