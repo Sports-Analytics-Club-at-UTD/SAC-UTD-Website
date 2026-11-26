@@ -7,6 +7,8 @@ import Events from './pages/Events';
 import Marketing from './pages/Marketing';
 import Projects from './pages/Projects';
 import Rnd from './pages/Rnd';
+import Finance from './pages/Finance';
+import FinanceConfirm from './pages/FinanceConfirm';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/marketing" element={<Marketing />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/rnd" element={<Rnd />} />
+        <Route path="/finance" element={<Finance />} />
+        <Route path="/finance/requests/:id/confirm" element={<FinanceConfirm />} />
       </Routes>
     </Router>
   );

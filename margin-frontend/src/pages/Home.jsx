@@ -153,6 +153,19 @@ export default function Home() {
               <>
                 <Link to="/events" onClick={() => setIsNavOpen(false)}>Events</Link>
                 <Link to="/projects" onClick={() => setIsNavOpen(false)}>Projects</Link>
+                <Link
+                  to="/finance"
+                  style={
+                    userProfile.role === 'director_finance' ||
+                    userProfile.role === 'exec' ||
+                    userProfile.is_superuser
+                      ? { color: 'var(--accent)' }
+                      : undefined
+                  }
+                  onClick={() => setIsNavOpen(false)}
+                >
+                  Finance
+                </Link>
 
                 {(userProfile.role === 'exec' || userProfile.role === 'director_rnd' || userProfile.role === 'officer_rnd' || userProfile.is_superuser) && (
                   <Link to="/Rnd" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>
