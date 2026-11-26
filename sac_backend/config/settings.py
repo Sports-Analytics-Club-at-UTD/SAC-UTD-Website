@@ -47,7 +47,9 @@ env = environ.Env(
 )
 # Reads a .env file in the project root if present. In production
 # (Railway/Render/etc.) these are just set as real environment variables.
-environ.Env.read_env(BASE_DIR / ".env")
+for env_path in (BASE_DIR.parent / ".env", BASE_DIR / ".env"):
+    if env_path.exists():
+        environ.Env.read_env(env_path)
 
 # --- Core ---------------------------------------------------------------
 
@@ -231,3 +233,15 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@sportsanalyticsclub.org")
 SECRETARY_EMAIL = env("SECRETARY_EMAIL", default="secretary@sportsanalyticsclub.org")
 EXEC_NOTIFICATION_EMAILS = env.list("EXEC_NOTIFICATION_EMAILS", default=[])
+
+# --- Finance Dashboard, Supabase Receipts & Frontend URLs -------------------
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173").rstrip("/")
+FINANCE_DIRECTOR_EMAIL = env(
+    "FINANCE_DIRECTOR_EMAIL", default="finance@sportsanalyticsclub.org"
+)
+SUPABASE_URL = env("SUPABASE_URL", default="").rstrip("/")
+SUPABASE_SECRET_KEY = env("SUPABASE_SECRET_KEY", default="")
+SUPABASE_RECEIPTS_BUCKET = env("SUPABASE_RECEIPTS_BUCKET", default="receipts")
+UTD_PROGRAMMING_FUNDS_SEMESTER_LIMIT = env.int(
+    "UTD_PROGRAMMING_FUNDS_SEMESTER_LIMIT", default=4
+)
