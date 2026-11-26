@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 import axios from 'axios';
 
 export default function Rnd() {
-  const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'industry', 'todos', 'workshop'
   
   // Data States
@@ -45,7 +44,6 @@ export default function Rnd() {
         return res.json();
       })
       .then(data => {
-        setUserProfile(data);
         // Lock out unauthorized users based on backend IsRndTeam permissions
         const isAuthorized = data.is_superuser || ['exec', 'director_rnd', 'officer_rnd'].includes(data.role);
         if (!isAuthorized) {
@@ -57,7 +55,7 @@ export default function Rnd() {
     fetchAllData(token);
   }, [navigate]);
 
-  const fetchAllData = async (token) => {
+  async function fetchAllData(token) {
     setLoading(true);
     try {
       const headers = { 'Authorization': `Token ${token}` };
@@ -79,7 +77,7 @@ export default function Rnd() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   // --- Generic Creation Handler ---
   const handleCreate = async (e) => {
@@ -134,7 +132,7 @@ export default function Rnd() {
         headers: { 'Authorization': `Token ${token}` }
       });
       fetchAllData(token);
-    } catch (err) {
+    } catch {
       alert('Failed to delete item.');
     }
   };
