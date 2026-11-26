@@ -70,9 +70,11 @@ class CostAnalyticsTests(APITestCase):
         resp = self.client.get("/api/finance/analytics/")
         self.assertEqual(resp.status_code, 200)
         kpis = resp.data["kpis"]
-        self.assertEqual(kpis["total_approved"], 160.0)
+        self.assertEqual(kpis["total_subtotal"], 160.0)
+        self.assertEqual(kpis["total_tax"], 13.2)
+        self.assertEqual(kpis["total_approved"], 173.2)
         self.assertEqual(kpis["total_reimbursed"], 60.0)
-        self.assertEqual(kpis["remaining_allocation"], 100.0)
+        self.assertEqual(kpis["remaining_allocation"], 113.2)
         self.assertEqual(kpis["utd_forms_pending_count"], 1)
 
         csv_resp = self.client.get("/api/finance/analytics/export.csv")

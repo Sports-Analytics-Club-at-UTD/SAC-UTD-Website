@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { asList, extractErrorMessage, financeApi } from '../../api/financeApi';
 import { createEmptyLineItem } from '../../utils/financeLineItems';
+import { SAMPLE_EVENTS } from '../../utils/sampleEvents';
 import LineItemGrid from './LineItemGrid';
 
 const SCOPE_OPTIONS = [
   { value: 'specific_event', label: 'Specific Event' },
-  { value: 'projects_team', label: 'Projects Team (Cloud / Compute)' },
+  { value: 'projects_team', label: 'Projects Team' },
   { value: 'miscellaneous', label: 'Miscellaneous' },
 ];
 
@@ -20,12 +21,22 @@ const CLASSIFICATION_OPTIONS = [
 export default function FundingRequestForm({ user }) {
   const [title, setTitle] = useState('');
   const [scope, setScope] = useState('specific_event');
+  const [selectedEventKey, setSelectedEventKey] = useState('');
   const [eventId, setEventId] = useState('');
+  const [eventName, setEventName] = useState('');
   const [eventClassification, setEventClassification] = useState('workshop');
   const [roomNumber, setRoomNumber] = useState('');
   const [reservationId, setReservationId] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventStartTime, setEventStartTime] = useState('');
+  const [eventEndTime, setEventEndTime] = useState('');
+  const [eventLead, setEventLead] = useState('');
+  const [eventLeadEmail, setEventLeadEmail] = useState('');
+  const [eventEstimatedAttendance, setEventEstimatedAttendance] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
   const [requesterEmail, setRequesterEmail] = useState(user?.email || '');
   const [notes, setNotes] = useState('');
+  const [includeTax, setIncludeTax] = useState(true);
   const [items, setItems] = useState([createEmptyLineItem()]);
 
   const [events, setEvents] = useState([]);
@@ -74,15 +85,52 @@ export default function FundingRequestForm({ user }) {
     };
   }, []);
 
-  const handleEventSelect = (selectedId) => {
-    setEventId(selectedId);
-    const match = events.find((ev) => String(ev.id) === String(selectedId));
-    if (match) {
-      if (match.location && !roomNumber.trim()) {
-        setRoomNumber(match.location);
-      }
+  const handleEventImport = (selectedKey) => {
+    setSelectedEventKey(selectedKey);
+    if (!selectedKey) {
+      setEventId('');
+      return;
+    }
+
+    const sampleMatch = SAMPLE_EVENTS.find((ev) => ev.id === selectedKey);
+    if (sampleMatch) {
+      setEventId('');
+      setEventName(sampleMatch.name);
+      setEventClassification(sampleMatch.classification);
+      setRoomNumber(sampleMatch.room_number);
+      setReservationId(sampleMatch.reservation_id);
+      setEventDate(sampleMatch.date);
+      setEventStartTime(sampleMatch.start_time);
+      setEventEndTime(sampleMatch.end_time);
+      setEventLead(sampleMatch.event_lead);
+      setEventLeadEmail(sampleMatch.event_lead_email);
+      setEventEstimatedAttendance(
+        sampleMatch.estimated_attendance != null ? String(sampleMatch.estimated_attendance) : ''
+      );
+      setEventDescription(sampleMatch.description);
       if (!title.trim()) {
-        setTitle(`${match.name} Funding`);
+        setTitle(`${sampleMatch.name} Funding`);
+      }
+      return;
+    }
+
+    const dbMatch = events.find((ev) => String(ev.id) === String(selectedKey));
+    if (dbMatch) {
+      setEventId(String(dbMatch.id));
+      setEventName(dbMatch.name || '');
+      if (dbMatch.classification) setEventClassification(dbMatch.classification);
+      setRoomNumber(dbMatch.room_number || dbMatch.location || '');
+      if (dbMatch.reservation_id) setReservationId(dbMatch.reservation_id);
+      setEventDate(dbMatch.date || '');
+      setEventStartTime((dbMatch.start_time || '').slice(0, 5));
+      setEventEndTime((dbMatch.end_time || '').slice(0, 5));
+      setEventLead(dbMatch.event_lead || '');
+      setEventLeadEmail(dbMatch.event_lead_email || '');
+      const estAtt = dbMatch.estimated_attendance ?? dbMatch.capacity;
+      setEventEstimatedAttendance(estAtt != null ? String(estAtt) : '');
+      setEventDescription(dbMatch.description || '');
+      if (!title.trim() && dbMatch.name) {
+        setTitle(`${dbMatch.name} Funding`);
       }
     }
   };
@@ -94,10 +142,12 @@ export default function FundingRequestForm({ user }) {
 
     const cleanedItems = items.map((row, idx) => ({
       item_name: row.item_name.trim(),
+      vendor: (row.vendor || '').trim(),
       quantity: row.quantity,
       unit_quantity: row.unit_quantity.trim(),
       unit_price: row.unit_price,
       category: row.category,
+      item_url: (row.item_url || '').trim(),
       sort_order: idx,
     }));
 
@@ -111,12 +161,23 @@ export default function FundingRequestForm({ user }) {
       scope,
       requester_email: requesterEmail.trim(),
       notes: notes.trim(),
+      include_tax: includeTax,
       items: cleanedItems,
     };
 
     if (scope === 'specific_event') {
       payload.event_id = eventId ? Number(eventId) : null;
       payload.event_classification = eventClassification;
+      payload.event_name = eventName.trim();
+      payload.event_description = eventDescription.trim();
+      payload.event_date = eventDate || null;
+      payload.event_start_time = eventStartTime || null;
+      payload.event_end_time = eventEndTime || null;
+      payload.event_lead = eventLead.trim();
+      payload.event_lead_email = eventLeadEmail.trim();
+      payload.event_estimated_attendance = eventEstimatedAttendance
+        ? Number(eventEstimatedAttendance)
+        : null;
       payload.room_number = roomNumber.trim();
       payload.reservation_id = reservationId.trim();
     }
@@ -125,13 +186,23 @@ export default function FundingRequestForm({ user }) {
     try {
       const created = await financeApi.createFundingRequest(payload);
       setSuccess(
-        `Submitted "${created.title}" (Status: Unchecked). You will receive an email once the Finance Director reviews it.`
+        `Submitted "${created.title}" with status Unchecked. You will receive an email once the Finance Director reviews it.`
       );
       setTitle('');
+      setSelectedEventKey('');
       setEventId('');
+      setEventName('');
       setRoomNumber('');
       setReservationId('');
+      setEventDate('');
+      setEventStartTime('');
+      setEventEndTime('');
+      setEventLead('');
+      setEventLeadEmail('');
+      setEventEstimatedAttendance('');
+      setEventDescription('');
       setNotes('');
+      setIncludeTax(true);
       setItems([createEmptyLineItem()]);
       await loadData();
     } catch (err) {
@@ -205,23 +276,46 @@ export default function FundingRequestForm({ user }) {
             }}
           >
             <div className="sac-eyebrow" style={{ marginBottom: 12 }}>
-              Event Details (Events Dashboard Integration)
+              Import Event
             </div>
-            <div className="sac-form-grid">
-              <div className="sac-field">
-                <label htmlFor="fr-event">Linked Event (Events Dashboard)</label>
-                <select
-                  id="fr-event"
-                  value={eventId}
-                  onChange={(e) => handleEventSelect(e.target.value)}
-                >
-                  <option value="">— Optional: Select an event —</option>
-                  {events.map((ev) => (
+
+            <div className="sac-field">
+              <label htmlFor="fr-event">Select Event to Auto-Import</label>
+              <select
+                id="fr-event"
+                value={selectedEventKey}
+                onChange={(e) => handleEventImport(e.target.value)}
+              >
+                <option value="">— Select a live or sample event to import —</option>
+                {events.length > 0 && (
+                  <optgroup label="Events Dashboard — Live">
+                    {events.map((ev) => (
+                      <option key={`db-${ev.id}`} value={String(ev.id)}>
+                        Live Event · {ev.name} — {ev.date}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Sample Events">
+                  {SAMPLE_EVENTS.map((ev) => (
                     <option key={ev.id} value={ev.id}>
-                      {ev.name} ({ev.date})
+                      {ev.source_label} · {ev.name} — {ev.date}
                     </option>
                   ))}
-                </select>
+                </optgroup>
+              </select>
+            </div>
+
+            <div className="sac-form-grid">
+              <div className="sac-field">
+                <label htmlFor="fr-ev-name">Event Name</label>
+                <input
+                  id="fr-ev-name"
+                  type="text"
+                  placeholder="Imported event name"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                />
               </div>
 
               <div className="sac-field">
@@ -263,9 +357,94 @@ export default function FundingRequestForm({ user }) {
                   required
                 />
               </div>
+
+              <div className="sac-field">
+                <label htmlFor="fr-ev-date">Date</label>
+                <input
+                  id="fr-ev-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                />
+              </div>
+
+              <div className="sac-field">
+                <label htmlFor="fr-ev-start">Start Time</label>
+                <input
+                  id="fr-ev-start"
+                  type="time"
+                  value={eventStartTime}
+                  onChange={(e) => setEventStartTime(e.target.value)}
+                />
+              </div>
+
+              <div className="sac-field">
+                <label htmlFor="fr-ev-end">End Time</label>
+                <input
+                  id="fr-ev-end"
+                  type="time"
+                  value={eventEndTime}
+                  onChange={(e) => setEventEndTime(e.target.value)}
+                />
+              </div>
+
+              <div className="sac-field">
+                <label htmlFor="fr-ev-lead">Event Lead</label>
+                <input
+                  id="fr-ev-lead"
+                  type="text"
+                  placeholder="e.g. Maya Patel"
+                  value={eventLead}
+                  onChange={(e) => setEventLead(e.target.value)}
+                />
+              </div>
+
+              <div className="sac-field">
+                <label htmlFor="fr-ev-lead-email">Event Lead Email</label>
+                <input
+                  id="fr-ev-lead-email"
+                  type="email"
+                  placeholder="lead@utdallas.edu"
+                  value={eventLeadEmail}
+                  onChange={(e) => setEventLeadEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="sac-field">
+                <label htmlFor="fr-ev-att">Estimated Attendance</label>
+                <input
+                  id="fr-ev-att"
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 65"
+                  value={eventEstimatedAttendance}
+                  onChange={(e) => setEventEstimatedAttendance(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="sac-field" style={{ marginBottom: 0 }}>
+              <label htmlFor="fr-ev-desc">Event Description</label>
+              <textarea
+                id="fr-ev-desc"
+                rows={2}
+                placeholder="Imported event description..."
+                value={eventDescription}
+                onChange={(e) => setEventDescription(e.target.value)}
+              />
             </div>
           </div>
         )}
+
+        <LineItemGrid
+          items={items}
+          onChange={setItems}
+          disabled={submitting}
+          includeTax={includeTax}
+          onToggleTax={setIncludeTax}
+        />
+
+        <hr className="sac-divider" />
 
         <div className="sac-field">
           <label htmlFor="fr-notes">Notes / Justification</label>
@@ -278,11 +457,7 @@ export default function FundingRequestForm({ user }) {
           />
         </div>
 
-        <hr className="sac-divider" />
-
-        <LineItemGrid items={items} onChange={setItems} disabled={submitting} />
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
           <button type="submit" className="sac-btn sac-btn-primary" disabled={submitting}>
             {submitting ? 'Submitting...' : 'Submit Funding Request'}
           </button>
@@ -337,9 +512,10 @@ export default function FundingRequestForm({ user }) {
                   <tr key={req.id}>
                     <td>
                       <div style={{ fontWeight: 600 }}>{req.title}</div>
-                      {req.event_summary && (
+                      {(req.event_summary?.name || req.event_name) && (
                         <div className="sac-muted" style={{ fontSize: 12 }}>
-                          {req.event_summary.name} · {req.room_number}
+                          {req.event_summary?.name || req.event_name}
+                          {req.room_number ? ` · ${req.room_number}` : ''}
                         </div>
                       )}
                     </td>

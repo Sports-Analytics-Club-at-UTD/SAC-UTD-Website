@@ -61,7 +61,7 @@ export default function FinanceConfirm() {
 
   return (
     <div className="sac-portal">
-      <div className="sac-page" style={{ maxWidth: 860 }}>
+      <div className="sac-page">
         <Link to="/finance" className="sac-back-link">
           ← Back to Finance Portal
         </Link>
@@ -182,10 +182,12 @@ export default function FinanceConfirm() {
                   <thead>
                     <tr>
                       <th>Item</th>
+                      <th>Vendor</th>
                       <th>Qty</th>
                       <th>Unit</th>
                       <th>Unit Price</th>
                       <th>Category</th>
+                      <th>Item Link</th>
                       <th style={{ textAlign: 'right' }}>Line Total</th>
                     </tr>
                   </thead>
@@ -193,10 +195,25 @@ export default function FinanceConfirm() {
                     {(requestData.items || []).map((item) => (
                       <tr key={item.id}>
                         <td>{item.item_name}</td>
+                        <td className="sac-muted">{item.vendor || '—'}</td>
                         <td className="sac-mono">{item.quantity}</td>
                         <td className="sac-muted">{item.unit_quantity || '—'}</td>
                         <td className="sac-mono">${Number(item.unit_price).toFixed(2)}</td>
                         <td style={{ textTransform: 'capitalize' }}>{item.category}</td>
+                        <td>
+                          {item.item_url ? (
+                            <a
+                              href={item.item_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--sac-orange-400)', textDecoration: 'underline' }}
+                            >
+                              Open Link ↗
+                            </a>
+                          ) : (
+                            <span className="sac-muted">—</span>
+                          )}
+                        </td>
                         <td className="sac-mono" style={{ textAlign: 'right' }}>
                           ${Number(item.line_total).toFixed(2)}
                         </td>
@@ -204,6 +221,24 @@ export default function FinanceConfirm() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div
+                className="sac-mono"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 20,
+                  marginTop: 12,
+                  fontSize: 13,
+                  color: 'var(--sac-text-400)',
+                }}
+              >
+                <span>Subtotal: ${Number(requestData.subtotal_amount ?? requestData.total_amount).toFixed(2)}</span>
+                <span>TX Tax · 8.25%: ${Number(requestData.tax_amount ?? 0).toFixed(2)}</span>
+                <span style={{ color: 'var(--sac-orange-400)', fontWeight: 600 }}>
+                  Grand Total: ${Number(requestData.total_amount).toFixed(2)}
+                </span>
               </div>
 
               {requestData.status === 'modified' && (

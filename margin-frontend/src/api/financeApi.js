@@ -113,6 +113,24 @@ export const financeApi = {
       method: 'PATCH',
       body: { utd_form_completed: completed },
     }),
+  downloadUtdBudgetXlsx: async (id, filenameHint = '') => {
+    const token = localStorage.getItem('sac_auth_token');
+    const res = await fetch(`${BASE_URL}/api/finance/funding-requests/${id}/utd-budget-xlsx/`, {
+      headers: token ? { Authorization: `Token ${token}` } : {},
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to download UTD Budget XLSX (HTTP ${res.status})`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `UTD-Programming-Funds-${filenameHint || `request-${id}`}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 
   // Phase 4 endpoints
   lookupApprovalId: (approvalId) =>

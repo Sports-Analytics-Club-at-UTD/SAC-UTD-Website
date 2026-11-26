@@ -43,7 +43,7 @@ class RefundRequestTests(APITestCase):
         self.assertEqual(ok.status_code, 200)
         self.assertTrue(ok.data["valid"])
         self.assertEqual(ok.data["title"], "Cloud Credits")
-        self.assertEqual(ok.data["approved_total"], "45.00")
+        self.assertEqual(ok.data["approved_total"], "48.71")
 
         bad = self.client.get("/api/finance/approval-lookup/?approval_id=SAC-0000-NOPE")
         self.assertEqual(bad.status_code, 200)
@@ -72,7 +72,7 @@ class RefundRequestTests(APITestCase):
             )
             self.assertEqual(create_resp.status_code, 201)
             self.assertEqual(create_resp.data["status"], RefundRequest.Status.PENDING)
-            self.assertEqual(Decimal(create_resp.data["amount_claimed"]), Decimal("45.00"))
+            self.assertEqual(Decimal(create_resp.data["amount_claimed"]), Decimal("48.71"))
             refund_id = create_resp.data["id"]
 
             # Director retrieves signed/local receipt URL & file

@@ -41,7 +41,7 @@ export default function DenyModal({ requestItem, onClose, onSuccess }) {
           <div className="sac-modal-body">
             {error && <div className="sac-banner sac-banner-error">{error}</div>}
             <div className="sac-field">
-              <label htmlFor="deny-reason">Written Denial Reasoning (emailed to requester) *</label>
+              <label htmlFor="deny-reason">Written Denial Reasoning — emailed to requester *</label>
               <textarea
                 id="deny-reason"
                 rows={4}

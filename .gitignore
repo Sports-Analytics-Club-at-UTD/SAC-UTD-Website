@@ -1,6 +1,6 @@
 # Environment / secrets
 .env
-
+sample_programming_funds.xlsx
 # Node
 margin-frontend/node_modules/
 

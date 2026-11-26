@@ -63,9 +63,10 @@
 /* ---------- Layout & Typography ---------- */
 
 .sac-page {
-  max-width: var(--sac-max-width);
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 32px;
 }
 
 .sac-eyebrow {

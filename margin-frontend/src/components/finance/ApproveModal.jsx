@@ -13,7 +13,10 @@ export default function ApproveModal({ requestItem, utdQuota, onClose, onSuccess
     setError('');
     setSubmitting(true);
     try {
-      await financeApi.approveFundingRequest(requestItem.id, fundingSource);
+      const approved = await financeApi.approveFundingRequest(requestItem.id, fundingSource);
+      if (fundingSource === 'utd_programming_funds') {
+        await financeApi.downloadUtdBudgetXlsx(approved.id, approved.approval_id);
+      }
       onSuccess();
     } catch (err) {
       setError(extractErrorMessage(err, 'Failed to approve request.'));
@@ -48,14 +51,14 @@ export default function ApproveModal({ requestItem, utdQuota, onClose, onSuccess
 
             {utdQuota && (
               <div className="sac-banner sac-banner-warn">
-                <strong>UTD Programming Funds Quota ({utdQuota.semester}):</strong>{' '}
-                {utdQuota.used_count} / {utdQuota.limit} used ({utdQuota.remaining} remaining)
+                <strong>UTD Programming Funds Quota · {utdQuota.semester}:</strong>{' '}
+                {utdQuota.used_count} / {utdQuota.limit} used, {utdQuota.remaining} remaining
                 {limitReached && ' — Semester limit reached. Use Club Funds.'}
               </div>
             )}
 
             <div className="sac-field">
-              <label htmlFor="approve-source">Select Funding Source (Required) *</label>
+              <label htmlFor="approve-source">Select Funding Source *</label>
               <select
                 id="approve-source"
                 value={fundingSource}
@@ -64,7 +67,7 @@ export default function ApproveModal({ requestItem, utdQuota, onClose, onSuccess
               >
                 <option value="club_funds">Club Funds</option>
                 <option value="utd_programming_funds" disabled={limitReached}>
-                  UTD Programming Funds ({utdQuota ? `${utdQuota.used_count}/${utdQuota.limit}` : 'max 4/semester'})
+                  UTD Programming Funds — {utdQuota ? `${utdQuota.used_count}/${utdQuota.limit} used` : 'max 4 per semester'}
                 </option>
               </select>
             </div>

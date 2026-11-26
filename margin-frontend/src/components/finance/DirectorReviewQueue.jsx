@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { asList, extractErrorMessage, financeApi } from '../../api/financeApi';
+import { ITEM_CATEGORIES } from '../../utils/financeLineItems';
 import ApproveModal from './ApproveModal';
 import DenyModal from './DenyModal';
 import ModifyModal from './ModifyModal';
@@ -84,7 +85,7 @@ export default function DirectorReviewQueue() {
               <span className="sac-mono" style={{ color: 'var(--sac-orange-400)' }}>
                 {utdQuota.used_count} / {utdQuota.limit}
               </span>{' '}
-              requests used ({utdQuota.remaining} remaining)
+              requests used · {utdQuota.remaining} remaining
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -113,7 +114,7 @@ export default function DirectorReviewQueue() {
             >
               <option value="">All Statuses</option>
               <option value="unchecked">Unchecked</option>
-              <option value="modified">Modified (Awaiting Confirm)</option>
+              <option value="modified">Modified — Awaiting Confirm</option>
               <option value="approved">Approved</option>
               <option value="denied">Denied</option>
             </select>
@@ -141,10 +142,11 @@ export default function DirectorReviewQueue() {
               onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
             >
               <option value="">All Categories</option>
-              <option value="food">Food</option>
-              <option value="technology">Technology</option>
-              <option value="logistics">Logistics</option>
-              <option value="merchandise">Merchandise</option>
+              {ITEM_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -177,7 +179,7 @@ export default function DirectorReviewQueue() {
           <div>
             <div className="sac-eyebrow">Finance Director Queue</div>
             <h2 className="sac-heading-md" style={{ marginTop: 4 }}>
-              Funding Requests ({requests.length})
+              Funding Requests · {requests.length}
             </h2>
           </div>
           <button type="button" className="sac-btn sac-btn-ghost sac-btn-sm" onClick={loadQueue}>
@@ -241,7 +243,7 @@ export default function DirectorReviewQueue() {
                         <span style={{ textTransform: 'capitalize' }}>
                           {req.scope.replace('_', ' ')}
                         </span>
-                        {req.event_classification && ` (${req.event_classification.replace('_', ' ')})`}
+                        {req.event_classification && ` · ${req.event_classification.replace('_', ' ')}`}
                         {req.event_summary && ` · Event: ${req.event_summary.name}`}
                         {req.room_number && ` · Room: ${req.room_number}`}
                         {req.reservation_id && ` · Res: ${req.reservation_id}`}
@@ -257,7 +259,7 @@ export default function DirectorReviewQueue() {
                         className="sac-btn sac-btn-ghost sac-btn-sm"
                         onClick={() => setExpandedId(isExpanded ? null : req.id)}
                       >
-                        {isExpanded ? 'Hide Items' : `Items (${req.items?.length || 0})`}
+                        {isExpanded ? 'Hide Items' : `Items · ${req.items?.length || 0}`}
                       </button>
                     </div>
                   </div>
@@ -291,13 +293,28 @@ export default function DirectorReviewQueue() {
                         />
                         <span>UTD Programming Funds Form Submitted / Completed</span>
                       </label>
-                      <span
-                        className={`sac-pill ${
-                          req.utd_form_completed ? 'sac-pill-approved' : 'sac-pill-pending'
-                        }`}
-                      >
-                        {req.utd_form_completed ? 'UTD Form Complete' : 'UTD Form Pending'}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="sac-btn sac-btn-ghost sac-btn-sm"
+                          onClick={() =>
+                            financeApi
+                              .downloadUtdBudgetXlsx(req.id, req.approval_id)
+                              .catch((err) =>
+                                setError(extractErrorMessage(err, 'Failed to export UTD XLSX.'))
+                              )
+                          }
+                        >
+                          Download UTD Budget XLSX
+                        </button>
+                        <span
+                          className={`sac-pill ${
+                            req.utd_form_completed ? 'sac-pill-approved' : 'sac-pill-pending'
+                          }`}
+                        >
+                          {req.utd_form_completed ? 'UTD Form Complete' : 'UTD Form Pending'}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -309,6 +326,44 @@ export default function DirectorReviewQueue() {
 
                   {isExpanded && (
                     <div style={{ marginTop: 14 }}>
+                      {(req.event_name ||
+                        req.event_date ||
+                        req.event_lead ||
+                        req.event_description) && (
+                        <div
+                          className="sac-muted"
+                          style={{
+                            fontSize: 13,
+                            marginBottom: 12,
+                            padding: 12,
+                            background: 'var(--sac-panel)',
+                            border: '1px solid var(--sac-line)',
+                            borderRadius: 'var(--sac-radius-sm)',
+                          }}
+                        >
+                          {req.event_name && (
+                            <div>
+                              <strong>Event:</strong> {req.event_name}
+                              {req.event_date && ` · ${req.event_date}`}
+                              {req.event_start_time &&
+                                ` · ${req.event_start_time.slice(0, 5)}${
+                                  req.event_end_time ? `–${req.event_end_time.slice(0, 5)}` : ''
+                                }`}
+                              {req.event_estimated_attendance != null &&
+                                ` · Est. Attendance: ${req.event_estimated_attendance}`}
+                            </div>
+                          )}
+                          {req.event_lead && (
+                            <div style={{ marginTop: 4 }}>
+                              <strong>Lead:</strong> {req.event_lead}
+                              {req.event_lead_email && ` · ${req.event_lead_email}`}
+                            </div>
+                          )}
+                          {req.event_description && (
+                            <div style={{ marginTop: 4 }}>{req.event_description}</div>
+                          )}
+                        </div>
+                      )}
                       {req.notes && (
                         <p className="sac-muted" style={{ fontSize: 13, marginBottom: 10 }}>
                           Notes: {req.notes}
@@ -319,10 +374,12 @@ export default function DirectorReviewQueue() {
                           <thead>
                             <tr>
                               <th>Item</th>
+                              <th>Vendor</th>
                               <th>Qty</th>
                               <th>Unit</th>
                               <th>Unit Price</th>
                               <th>Category</th>
+                              <th>Item Link</th>
                               <th style={{ textAlign: 'right' }}>Line Total</th>
                             </tr>
                           </thead>
@@ -330,10 +387,25 @@ export default function DirectorReviewQueue() {
                             {(req.items || []).map((item) => (
                               <tr key={item.id}>
                                 <td>{item.item_name}</td>
+                                <td className="sac-muted">{item.vendor || '—'}</td>
                                 <td className="sac-mono">{item.quantity}</td>
                                 <td className="sac-muted">{item.unit_quantity || '—'}</td>
                                 <td className="sac-mono">${Number(item.unit_price).toFixed(2)}</td>
                                 <td style={{ textTransform: 'capitalize' }}>{item.category}</td>
+                                <td>
+                                  {item.item_url ? (
+                                    <a
+                                      href={item.item_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: 'var(--sac-orange-400)', textDecoration: 'underline' }}
+                                    >
+                                      Open Link ↗
+                                    </a>
+                                  ) : (
+                                    <span className="sac-muted">—</span>
+                                  )}
+                                </td>
                                 <td className="sac-mono" style={{ textAlign: 'right' }}>
                                   ${Number(item.line_total).toFixed(2)}
                                 </td>
@@ -341,6 +413,23 @@ export default function DirectorReviewQueue() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                      <div
+                        className="sac-mono"
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          gap: 20,
+                          marginTop: 10,
+                          fontSize: 13,
+                          color: 'var(--sac-text-400)',
+                        }}
+                      >
+                        <span>Subtotal: ${Number(req.subtotal_amount ?? req.total_amount).toFixed(2)}</span>
+                        <span>TX Tax · 8.25%: ${Number(req.tax_amount ?? 0).toFixed(2)}</span>
+                        <span style={{ color: 'var(--sac-orange-400)', fontWeight: 600 }}>
+                          Grand Total: ${Number(req.total_amount).toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   )}

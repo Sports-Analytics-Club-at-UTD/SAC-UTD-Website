@@ -111,10 +111,12 @@ def _serialize_item_snapshot(item_dict: dict) -> dict:
     line_total = (qty * price).quantize(Decimal("0.01"))
     return {
         "item_name": item_dict["item_name"],
+        "vendor": item_dict.get("vendor", ""),
         "quantity": str(qty),
         "unit_quantity": item_dict.get("unit_quantity", ""),
         "unit_price": str(price),
         "category": item_dict["category"],
+        "item_url": item_dict.get("item_url", ""),
         "line_total": str(line_total),
     }
 

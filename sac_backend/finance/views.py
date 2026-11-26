@@ -52,6 +52,7 @@ from .storage import (
     resolve_local_receipt_path,
     upload_receipt,
 )
+from .xlsx_export import build_utd_programming_funds_xlsx
 
 
 def _is_finance_director(user) -> bool:
@@ -239,10 +240,12 @@ class FundingRequestViewSet(viewsets.ModelViewSet):
         old_items = [
             {
                 "item_name": item.item_name,
+                "vendor": item.vendor,
                 "quantity": item.quantity,
                 "unit_quantity": item.unit_quantity,
                 "unit_price": item.unit_price,
                 "category": item.category,
+                "item_url": item.item_url,
             }
             for item in funding_request.items.all()
         ]
@@ -385,6 +388,25 @@ class FundingRequestViewSet(viewsets.ModelViewSet):
             update_fields=["utd_form_completed", "utd_form_completed_at", "updated_at"]
         )
         return Response(self.get_serializer(funding_request).data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="utd-budget-xlsx",
+        permission_classes=[IsFinanceDirector],
+    )
+    def utd_budget_xlsx(self, request, pk=None):
+        funding_request = self.get_object()
+        xlsx_bytes = build_utd_programming_funds_xlsx(funding_request)
+        slug = funding_request.approval_id or f"request-{funding_request.pk}"
+        response = HttpResponse(
+            xlsx_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="UTD-Programming-Funds-{slug}.xlsx"'
+        )
+        return response
 
 
 class UtdQuotaView(APIView):
@@ -616,6 +638,8 @@ def _compute_analytics_payload(params):
         for src, _ in FundingRequest.FundingSource.choices
     }
 
+    total_subtotal = Decimal("0.00")
+    total_tax = Decimal("0.00")
     total_approved = Decimal("0.00")
     total_reimbursed = Decimal("0.00")
     pending_reimbursement = Decimal("0.00")
@@ -623,6 +647,8 @@ def _compute_analytics_payload(params):
 
     for fr in approved_requests:
         fr_total = fr.total_amount
+        total_subtotal += fr.subtotal_amount
+        total_tax += fr.tax_amount
         total_approved += fr_total
 
         for item in fr.items.all():
@@ -675,6 +701,8 @@ def _compute_analytics_payload(params):
 
     return {
         "kpis": {
+            "total_subtotal": float(total_subtotal),
+            "total_tax": float(total_tax),
             "total_approved": float(total_approved),
             "total_reimbursed": float(total_reimbursed),
             "pending_reimbursement": float(pending_reimbursement),
@@ -755,6 +783,8 @@ class CostAnalyticsCsvExportView(APIView):
                 "UTD Form Completed",
                 "Status",
                 "Requester",
+                "Subtotal",
+                "TX Tax",
                 "Approved Total",
                 "Reimbursed Total",
                 "Pending Refund Total",
@@ -792,6 +822,8 @@ class CostAnalyticsCsvExportView(APIView):
                     "Yes" if fr.utd_form_completed else ("No" if fr.utd_form_required else "N/A"),
                     fr.get_status_display(),
                     fr.requester.username,
+                    f"{fr.subtotal_amount:.2f}",
+                    f"{fr.tax_amount:.2f}",
                     f"{fr.total_amount:.2f}",
                     f"{reimbursed:.2f}",
                     f"{pending_refund:.2f}",

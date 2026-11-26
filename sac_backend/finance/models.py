@@ -106,6 +106,14 @@ class FundingRequest(TimeStampedModel):
     event_classification = models.CharField(
         max_length=32, choices=EventClassification.choices, blank=True
     )
+    event_name = models.CharField(max_length=200, blank=True)
+    event_description = models.TextField(blank=True)
+    event_date = models.DateField(null=True, blank=True)
+    event_start_time = models.TimeField(null=True, blank=True)
+    event_end_time = models.TimeField(null=True, blank=True)
+    event_lead = models.CharField(max_length=150, blank=True)
+    event_lead_email = models.EmailField(blank=True)
+    event_estimated_attendance = models.PositiveIntegerField(null=True, blank=True)
     room_number = models.CharField(max_length=64, blank=True)
     reservation_id = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
@@ -142,6 +150,11 @@ class FundingRequest(TimeStampedModel):
     confirmed_at = models.DateTimeField(null=True, blank=True)
     confirmation_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
+    include_tax = models.BooleanField(default=True)
+    tax_rate = models.DecimalField(
+        max_digits=5, decimal_places=4, default=Decimal("0.0825")
+    )
+
     class Meta(TimeStampedModel.Meta):
         ordering = ["-created_at"]
 
@@ -149,11 +162,21 @@ class FundingRequest(TimeStampedModel):
         return f"[{self.status}] {self.title} ({self.approval_id or 'pending'})"
 
     @property
-    def total_amount(self) -> Decimal:
+    def subtotal_amount(self) -> Decimal:
         total = Decimal("0.00")
         for item in self.items.all():
             total += item.line_total
         return total.quantize(Decimal("0.01"))
+
+    @property
+    def tax_amount(self) -> Decimal:
+        if not self.include_tax:
+            return Decimal("0.00")
+        return (self.subtotal_amount * self.tax_rate).quantize(Decimal("0.01"))
+
+    @property
+    def total_amount(self) -> Decimal:
+        return (self.subtotal_amount + self.tax_amount).quantize(Decimal("0.01"))
 
     @property
     def effective_requester_email(self) -> str:
@@ -168,19 +191,30 @@ class FundingRequestItem(TimeStampedModel):
     """A single line item inside a FundingRequest's spreadsheet grid."""
 
     class Category(models.TextChoices):
-        FOOD = "food", "Food"
+        PUBLICITY_MARKETING = "publicity_marketing", "Publicity and Marketing"
+        DECORATIONS_SUPPLIES = "decorations_supplies", "Decorations and Supplies"
+        FOOD = "food", "Food and Drinks"
+        FACILITIES = "facilities", "Facilities"
+        ENTERTAINMENT = "entertainment", "Entertainment"
+        EVENT_PERSONNEL = "event_personnel", "Event Personnel"
+        EQUIPMENT_RENTAL = "equipment_rental", "Equipment Rental"
         TECHNOLOGY = "technology", "Technology"
+        MISCELLANEOUS = "miscellaneous", "Miscellaneous"
+        # Legacy values preserved for backwards compatibility
         LOGISTICS = "logistics", "Logistics"
         MERCHANDISE = "merchandise", "Merchandise"
+        PRIZES = "prizes", "Prizes"
 
     funding_request = models.ForeignKey(
         FundingRequest, on_delete=models.CASCADE, related_name="items"
     )
     item_name = models.CharField(max_length=200)
+    vendor = models.CharField(max_length=150, blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit_quantity = models.CharField(max_length=64, blank=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.CharField(max_length=32, choices=Category.choices)
+    item_url = models.URLField(max_length=500, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta(TimeStampedModel.Meta):

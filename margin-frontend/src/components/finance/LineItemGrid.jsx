@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import {
   ITEM_CATEGORIES,
-  computeGrandTotal,
+  computeCostBreakdown,
   computeLineTotal,
   createEmptyLineItem,
 } from '../../utils/financeLineItems';
@@ -27,7 +27,13 @@ function parseCsvLine(line) {
 
 const VALID_CATEGORIES = new Set(ITEM_CATEGORIES.map((c) => c.value));
 
-export default function LineItemGrid({ items, onChange, disabled = false }) {
+export default function LineItemGrid({
+  items,
+  onChange,
+  disabled = false,
+  includeTax = true,
+  onToggleTax = null,
+}) {
   const fileInputRef = useRef(null);
   const [csvNotice, setCsvNotice] = useState('');
 
@@ -72,22 +78,24 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
       const startIndex = lines[0].toLowerCase().includes('item_name') ? 1 : 0;
       const imported = [];
       for (let i = startIndex; i < lines.length; i += 1) {
-        const [itemName, qtyRaw, unitQty, priceRaw, catRaw] = parseCsvLine(lines[i]);
+        const [itemName, qtyRaw, unitQty, priceRaw, catRaw, urlRaw, vendorRaw] = parseCsvLine(lines[i]);
         if (!itemName) continue;
         const cat = (catRaw || 'logistics').toLowerCase();
         imported.push({
           item_name: itemName,
+          vendor: vendorRaw || '',
           quantity: String(Number.isFinite(parseFloat(qtyRaw)) ? parseFloat(qtyRaw) : 1),
           unit_quantity: unitQty || '',
           unit_price: String(
             Number.isFinite(parseFloat(priceRaw)) ? parseFloat(priceRaw).toFixed(2) : '0.00'
           ),
           category: VALID_CATEGORIES.has(cat) ? cat : 'logistics',
+          item_url: urlRaw || '',
         });
       }
 
       if (imported.length === 0) {
-        setCsvNotice('No valid rows found. Expected: item_name,quantity,unit_quantity,unit_price,category');
+        setCsvNotice('No valid rows found. Expected columns: item_name, quantity, unit_quantity, unit_price, category, item_url');
         return;
       }
       onChange(imported);
@@ -97,7 +105,7 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
     }
   };
 
-  const grandTotal = computeGrandTotal(items);
+  const { subtotal, tax, grandTotal } = computeCostBreakdown(items, includeTax);
 
   return (
     <div>
@@ -112,7 +120,7 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
         }}
       >
         <div>
-          <span className="sac-eyebrow">Line Items (Spreadsheet Grid)</span>
+          <span className="sac-eyebrow">Line Items</span>
           <div className="sac-muted" style={{ fontSize: 12 }}>
             Press Enter on the last row to add another item, or import a CSV.
           </div>
@@ -156,10 +164,12 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
             <tr>
               <th style={{ width: 36 }}>#</th>
               <th>Item Name *</th>
+              <th style={{ width: 145 }}>Vendor</th>
               <th style={{ width: 90 }}>Qty *</th>
               <th style={{ width: 130 }}>Unit Qty</th>
-              <th style={{ width: 115 }}>Unit Price ($) *</th>
+              <th style={{ width: 115 }}>Unit Price *</th>
               <th style={{ width: 145 }}>Category *</th>
+              <th style={{ minWidth: 200 }}>Item Link</th>
               <th style={{ width: 110, textAlign: 'right' }}>Line Total</th>
               {!disabled && <th style={{ width: 44 }} />}
             </tr>
@@ -185,6 +195,17 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
                       onChange={(e) => updateRow(idx, 'item_name', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, idx)}
                       required
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      className="sac-grid-input"
+                      placeholder="e.g. Amazon / Domino's"
+                      value={row.vendor || ''}
+                      disabled={disabled}
+                      onChange={(e) => updateRow(idx, 'vendor', e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, idx)}
                     />
                   </td>
                   <td>
@@ -239,6 +260,17 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
                       ))}
                     </select>
                   </td>
+                  <td>
+                    <input
+                      type="url"
+                      className="sac-grid-input"
+                      placeholder="https://..."
+                      value={row.item_url || ''}
+                      disabled={disabled}
+                      onChange={(e) => updateRow(idx, 'item_url', e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, idx)}
+                    />
+                  </td>
                   <td className="sac-grid-total-cell">${lineTotal.toFixed(2)}</td>
                   {!disabled && (
                     <td style={{ textAlign: 'center' }}>
@@ -264,16 +296,77 @@ export default function LineItemGrid({ items, onChange, disabled = false }) {
       <div
         style={{
           display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'baseline',
-          gap: 12,
-          marginTop: 12,
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+          marginTop: 14,
         }}
       >
-        <span className="sac-eyebrow">Estimated Grand Total</span>
-        <span className="sac-mono" style={{ fontSize: 22, fontWeight: 600, color: 'var(--sac-orange-400)' }}>
-          ${grandTotal.toFixed(2)}
-        </span>
+        <div>
+          {onToggleTax && (
+            <label
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                fontSize: 13,
+                color: 'var(--sac-text-400)',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={includeTax}
+                disabled={disabled}
+                onChange={(e) => onToggleTax(e.target.checked)}
+              />
+              <span>Include Texas Sales Tax · 8.25%</span>
+            </label>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 4,
+            minWidth: 240,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 24 }}>
+            <span className="sac-eyebrow">Subtotal</span>
+            <span className="sac-mono" style={{ fontSize: 14 }}>
+              ${subtotal.toFixed(2)}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 24 }}>
+            <span className="sac-eyebrow">TX Sales Tax · 8.25%</span>
+            <span className="sac-mono" style={{ fontSize: 14, color: 'var(--sac-text-400)' }}>
+              ${tax.toFixed(2)}
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              width: '100%',
+              gap: 24,
+              paddingTop: 6,
+              borderTop: '1px solid var(--sac-line)',
+            }}
+          >
+            <span className="sac-eyebrow">Estimated Grand Total</span>
+            <span
+              className="sac-mono"
+              style={{ fontSize: 22, fontWeight: 600, color: 'var(--sac-orange-400)' }}
+            >
+              ${grandTotal.toFixed(2)}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -92,7 +92,9 @@ class FundingRequestWorkflowTests(APITestCase):
         resp = self._create_event_request()
         self.assertEqual(resp.status_code, 201)
         self.assertEqual(resp.data["status"], FundingRequest.Status.UNCHECKED)
-        self.assertEqual(Decimal(resp.data["total_amount"]), Decimal("85.00"))
+        self.assertEqual(Decimal(resp.data["subtotal_amount"]), Decimal("85.00"))
+        self.assertEqual(Decimal(resp.data["tax_amount"]), Decimal("7.01"))
+        self.assertEqual(Decimal(resp.data["total_amount"]), Decimal("92.01"))
         fr_id = resp.data["id"]
 
         # Member cannot approve their own request
@@ -195,7 +197,9 @@ class FundingRequestWorkflowTests(APITestCase):
         )
         self.assertEqual(mod_resp.status_code, 200)
         self.assertEqual(mod_resp.data["status"], FundingRequest.Status.MODIFIED)
-        self.assertEqual(Decimal(mod_resp.data["total_amount"]), Decimal("50.00"))
+        self.assertEqual(Decimal(mod_resp.data["subtotal_amount"]), Decimal("50.00"))
+        self.assertEqual(Decimal(mod_resp.data["tax_amount"]), Decimal("4.12"))
+        self.assertEqual(Decimal(mod_resp.data["total_amount"]), Decimal("54.12"))
         self.assertEqual(len(mod_resp.data["modification_logs"]), 1)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("/confirm?token=", mail.outbox[0].body)
@@ -246,3 +250,39 @@ class FundingRequestWorkflowTests(APITestCase):
         list_resp = self.client.get("/api/finance/funding-requests/")
         self.assertEqual(list_resp.status_code, 200)
         self.assertEqual(len(as_list(list_resp.data)), 0)
+
+    def test_utd_budget_xlsx_export_matches_template(self):
+        from io import BytesIO
+        import openpyxl
+
+        create_resp = self._create_event_request("HACKAI Workshop Catering")
+        fr_id = create_resp.data["id"]
+        self._auth(self.director)
+        self.client.post(
+            f"/api/finance/funding-requests/{fr_id}/approve/",
+            {"funding_source": FundingRequest.FundingSource.UTD_PROGRAMMING_FUNDS},
+            format="json",
+        )
+        xlsx_resp = self.client.get(
+            f"/api/finance/funding-requests/{fr_id}/utd-budget-xlsx/"
+        )
+        self.assertEqual(xlsx_resp.status_code, 200)
+        self.assertEqual(
+            xlsx_resp["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        wb = openpyxl.load_workbook(BytesIO(xlsx_resp.content))
+        ws = wb["Budget Breakdown"]
+        self.assertEqual(ws["H1"].value, "Sports Analytics Club")
+        # Food item goes in Food and Drinks (row 32)
+        self.assertIn("Large Pizza", ws["B32"].value)
+        self.assertEqual(ws["C32"].value, 4)
+        self.assertEqual(ws["D32"].value, 15)
+        # Technology item goes in Miscellaneous (row 54)
+        self.assertIn("HDMI Adapter", ws["B54"].value)
+        # Sample placeholder links in row 33/34 were cleared
+        self.assertIsNone(ws["H33"].value)
+        self.assertIsNone(ws["H34"].value)
+        # Formulas preserved
+        self.assertTrue(str(ws["F32"].value).startswith("="))
+        self.assertTrue(str(ws["G32"].value).startswith("="))

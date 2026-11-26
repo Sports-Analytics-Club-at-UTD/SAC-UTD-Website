@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { extractErrorMessage, financeApi } from '../../api/financeApi';
-import { computeGrandTotal } from '../../utils/financeLineItems';
+import { computeCostBreakdown } from '../../utils/financeLineItems';
 import LineItemGrid from './LineItemGrid';
 
 export default function ModifyModal({ requestItem, utdQuota, onClose, onSuccess }) {
@@ -11,18 +11,21 @@ export default function ModifyModal({ requestItem, utdQuota, onClose, onSuccess 
   const [items, setItems] = useState(
     (requestItem.items || []).map((item) => ({
       item_name: item.item_name,
+      vendor: item.vendor || '',
       quantity: String(item.quantity),
       unit_quantity: item.unit_quantity || '',
       unit_price: String(item.unit_price),
       category: item.category,
+      item_url: item.item_url || '',
     }))
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const includeTax = requestItem.include_tax !== false;
   const limitReached = Boolean(utdQuota?.is_limit_reached);
   const originalTotal = Number(requestItem.total_amount || 0);
-  const newTotal = computeGrandTotal(items);
+  const { grandTotal: newTotal } = computeCostBreakdown(items, includeTax);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,10 +42,12 @@ export default function ModifyModal({ requestItem, utdQuota, onClose, onSuccess 
         summary: summary.trim(),
         items: items.map((r, idx) => ({
           item_name: r.item_name.trim(),
+          vendor: (r.vendor || '').trim(),
           quantity: r.quantity,
           unit_quantity: r.unit_quantity.trim(),
           unit_price: r.unit_price,
           category: r.category,
+          item_url: (r.item_url || '').trim(),
           sort_order: idx,
         })),
       });
@@ -73,14 +78,14 @@ export default function ModifyModal({ requestItem, utdQuota, onClose, onSuccess 
 
             {utdQuota && (
               <div className="sac-banner sac-banner-warn">
-                <strong>UTD Programming Funds Quota ({utdQuota.semester}):</strong>{' '}
-                {utdQuota.used_count} / {utdQuota.limit} used ({utdQuota.remaining} remaining)
+                <strong>UTD Programming Funds Quota · {utdQuota.semester}:</strong>{' '}
+                {utdQuota.used_count} / {utdQuota.limit} used, {utdQuota.remaining} remaining
               </div>
             )}
 
             <div className="sac-form-grid">
               <div className="sac-field">
-                <label htmlFor="mod-source">Funding Source (Required before approval) *</label>
+                <label htmlFor="mod-source">Funding Source *</label>
                 <select
                   id="mod-source"
                   value={fundingSource}
@@ -89,7 +94,7 @@ export default function ModifyModal({ requestItem, utdQuota, onClose, onSuccess 
                 >
                   <option value="club_funds">Club Funds</option>
                   <option value="utd_programming_funds" disabled={limitReached}>
-                    UTD Programming Funds ({utdQuota ? `${utdQuota.used_count}/${utdQuota.limit}` : 'max 4/semester'})
+                    UTD Programming Funds — {utdQuota ? `${utdQuota.used_count}/${utdQuota.limit} used` : 'max 4 per semester'}
                   </option>
                 </select>
               </div>
@@ -123,7 +128,12 @@ export default function ModifyModal({ requestItem, utdQuota, onClose, onSuccess 
               </span>
             </div>
 
-            <LineItemGrid items={items} onChange={setItems} disabled={submitting} />
+            <LineItemGrid
+              items={items}
+              onChange={setItems}
+              disabled={submitting}
+              includeTax={includeTax}
+            />
           </div>
 
           <div className="sac-modal-footer">

@@ -50,10 +50,12 @@ class FundingRequestItemSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "item_name",
+            "vendor",
             "quantity",
             "unit_quantity",
             "unit_price",
             "category",
+            "item_url",
             "sort_order",
             "line_total",
         ]
@@ -104,6 +106,12 @@ class FundingRequestSerializer(serializers.ModelSerializer):
     reviewed_by_username = serializers.CharField(
         source="reviewed_by.username", read_only=True, default=None
     )
+    subtotal_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
+    tax_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
     total_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True
     )
@@ -120,6 +128,14 @@ class FundingRequestSerializer(serializers.ModelSerializer):
             "event_id",
             "event_summary",
             "event_classification",
+            "event_name",
+            "event_description",
+            "event_date",
+            "event_start_time",
+            "event_end_time",
+            "event_lead",
+            "event_lead_email",
+            "event_estimated_attendance",
             "room_number",
             "reservation_id",
             "notes",
@@ -134,6 +150,10 @@ class FundingRequestSerializer(serializers.ModelSerializer):
             "reviewed_by_username",
             "reviewed_at",
             "confirmed_at",
+            "include_tax",
+            "tax_rate",
+            "subtotal_amount",
+            "tax_amount",
             "total_amount",
             "items",
             "modification_logs",
@@ -152,6 +172,7 @@ class FundingRequestSerializer(serializers.ModelSerializer):
             "reviewed_by",
             "reviewed_at",
             "confirmed_at",
+            "tax_rate",
         ]
 
     def get_event_summary(self, obj):
