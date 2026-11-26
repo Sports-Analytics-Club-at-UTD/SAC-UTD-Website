@@ -135,3 +135,20 @@ accounts, events, projects, media_hub, finance, rnd, requests_hub.
    endpoint already returns everything a frontend needs
    (`role`, `is_director`, `is_officer`) to decide which portal tabs to
    render.
+## Club UI
+
+The public homepage and authentication forms use shadcn/ui components under
+`src/components/ui`, Tailwind CSS 4, and the neutral theme in `src/index.css`.
+`components.json` configures JavaScript component generation. Legacy portal
+styles live in `src/legacy.css`, in the base CSS layer so utilities take precedence.
+
+Run `npm install`, `npm run dev`, `npm run build`, and `npm test` from this folder.
+The homepage preserves member role navigation, approved media and ESPN scores.
+Projects link to the club's real repositories; no placeholder report or membership
+statistics are presented as live data. Mobile navigation uses an accessible Sheet.
+The Django API and authorization rules are unchanged.
+
+Tests cover mobile navigation, session handling, role links, logout, failed feeds,
+and the login payload. Production build and lint on changed source files pass.
+Full-project lint still reports existing errors in the officer portal pages.
+Browser visual checks and live-backend submissions have not been performed.
