@@ -159,7 +159,7 @@ export default function Home() {
                     R&D Portal
                   </Link>
                 )}
-                {(userProfile.role === 'director_marketing' || userProfile.role === 'exec') && (
+                {(userProfile.role === 'director_marketing' || userProfile.role === 'officer_marketing' || userProfile.role === 'exec') && (
                   <Link to="/marketing" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Marketing</Link>
                 )}
                 {(userProfile.role === 'director_secretary' || userProfile.role === 'exec') && (
