@@ -14,11 +14,7 @@ export default function Secretary() {
     { value: 'director_secretary', label: 'Secretary' }
   ];
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  async function fetchUsers() {
     const token = localStorage.getItem('sac_auth_token');
     if (!token) return;
 
@@ -50,10 +46,16 @@ export default function Secretary() {
           setAllMembers([]); 
         }
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', message: 'Failed to fetch user data.' });
     }
-  };
+  }
+
+  useEffect(() => {
+    // State is only set after the fetch resolves, not synchronously in the effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUsers();
+  }, []);
 
   const handleRoleUpdate = async (userId, newRole) => {
     const token = localStorage.getItem('sac_auth_token');
@@ -77,7 +79,7 @@ export default function Secretary() {
         const data = await response.json();
         setStatus({ type: 'error', message: data.error || 'Failed to update role.' });
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', message: 'Network error updating role.' });
     }
   };

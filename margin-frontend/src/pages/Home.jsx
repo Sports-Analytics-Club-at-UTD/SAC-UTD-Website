@@ -129,6 +129,51 @@ export default function Home() {
     ...(['exec', 'director_marketing'].includes(userProfile.role) ? [['/marketing', 'Marketing']] : []),
     ...(['exec', 'director_secretary'].includes(userProfile.role) ? [['/secretary', 'Secretary']] : []),
   ] : [];
+  const renderTickerItems = () => {
+    return games.map((g, index) => (
+      <div className="ticker-item" key={index}>
+        <span className={`ticker-status ${g.live ? 'live' : 'final'}`}>{g.status}</span>
+        <span style={{ color: 'var(--text-dim)' }}>{g.league}</span>
+        <span className={`team ${g.winner === 'away' ? 'win' : ''}`}>{g.away}</span>
+        <span className={`score ${g.winner === 'away' ? 'win' : ''}`}>{g.awayScore}</span>
+        <span style={{ color: 'var(--text-dim)' }}>–</span>
+        <span className={`score ${g.winner === 'home' ? 'win' : ''}`}>{g.homeScore}</span>
+        <span className={`team ${g.winner === 'home' ? 'win' : ''}`}>{g.home}</span>
+      </div>
+    ));
+  };
+
+  return (
+    <>
+      {/* ================= NAVBAR ================= */}
+      <header className="navbar">
+        <div className="wrap">
+          <a href="#top" className="brand">
+            <img src="/SAC Submark Logo Light.png" alt="SAC Submark" style={{ width: '36px', height: '36px' }} />
+            <span>SAC UTD<small>SPORTS ANALYTICS CLUB</small></span>
+          </a>
+
+          <nav className={`nav-links ${isNavOpen ? 'open' : ''}`} id="navLinks">
+            <a href="#reports" onClick={() => setIsNavOpen(false)}>Reports</a>
+            <a href="#scroller" onClick={() => setIsNavOpen(false)}>Media</a>
+            <a href="#numbers" onClick={() => setIsNavOpen(false)}>By The Numbers</a>
+            
+            {userProfile ? (
+              <>
+                <Link to="/events" onClick={() => setIsNavOpen(false)}>Events</Link>
+                <Link to="/projects" onClick={() => setIsNavOpen(false)}>Projects</Link>
+
+                {(userProfile.role === 'exec' || userProfile.role === 'director_rnd' || userProfile.role === 'officer_rnd' || userProfile.is_superuser) && (
+                  <Link to="/Rnd" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>
+                    R&D Portal
+                  </Link>
+                )}
+                {(userProfile.role === 'director_marketing' || userProfile.role === 'officer_marketing' || userProfile.role === 'exec') && (
+                  <Link to="/marketing" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Marketing</Link>
+                )}
+                {(userProfile.role === 'director_secretary' || userProfile.role === 'exec') && (
+                  <Link to="/secretary" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>Secretary</Link>
+                )}
 
   const navigation = <>
     <a href="#work" onClick={() => setIsNavOpen(false)}>Our work</a>
