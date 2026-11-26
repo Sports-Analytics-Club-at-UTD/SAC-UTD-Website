@@ -195,6 +195,10 @@ CORS_ALLOWED_ORIGINS = env.list(
         "https://sac-utd-website.vercel.app"
     ],
 )
+if DEBUG:
+    for _dev_origin in ("http://localhost:5173", "http://127.0.0.1:5173"):
+        if _dev_origin not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(_dev_origin)
 CORS_ALLOW_CREDENTIALS = True
 
 # --- Django REST Framework ---------------------------------------------------
