@@ -3,11 +3,28 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BASE_URL } from '../config';
 import axios from 'axios';
 
+const DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1EAmT49FEeOvyRzxkKU_PkYpwyfQ0rEBV';
+
+// Supabase serves S3-uploaded files from its public-object path, not the S3 one.
+const mediaUrl = (file) => {
+  if (!file) return null;
+  if (!file.startsWith('http')) {
+    return `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${file}`;
+  }
+  return file.replace('/storage/v1/s3/', '/storage/v1/object/public/');
+};
+
 export default function Marketing() {
   const [userProfile, setUserProfile] = useState(null);
   const [pendingMedia, setPendingMedia] = useState([]);
   const [featuredMedia, setFeaturedMedia] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
+
+  // All uploads library: '' = every status
+  const [uploads, setUploads] = useState([]);
+  const [uploadsFilter, setUploadsFilter] = useState('');
+  const [uploadsPage, setUploadsPage] = useState(1);
+  const [uploadsHasMore, setUploadsHasMore] = useState(false);
 
   // Upload Form State
   const [title, setTitle] = useState('');
@@ -32,6 +49,7 @@ export default function Marketing() {
       .catch(err => console.error(err));
       
       fetchPendingMedia();
+      fetchUploads('', 1);
     }
   }, []);
 
@@ -63,7 +81,7 @@ export default function Marketing() {
     fetchFeaturedMedia();
   }, [fetchFeaturedMedia]);
 
-  // Handle removing an image from the scroller
+  // Take an image off the scroller; it stays in All Uploads as rejected so it can be re-approved.
   const handleRemove = async (id) => {
     const token = localStorage.getItem('sac_auth_token');
     if (!token) return;
@@ -71,42 +89,61 @@ export default function Marketing() {
     if (!window.confirm("Are you sure you want to remove this image from the scroller?")) return;
 
     try {
-      const res = await fetch(`${BASE_URL}/api/media/uploads/${id}/`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Token ${token}` }
-      });
-
-      if (!res.ok) throw new Error('Failed to delete media item.');
+      await axios.post(`${BASE_URL}/api/media/uploads/${id}/review/`,
+        { status: 'rejected' },
+        { headers: { 'Authorization': `Token ${token}` } }
+      );
 
       // Remove from local state instantly
       setFeaturedMedia(prev => prev.filter(item => item.id !== id));
+      fetchUploads(uploadsFilter, 1);
       setStatus({ type: 'success', message: 'Media successfully removed from scroller.' });
       setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-    } catch (err) {
-      alert(err.message);
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to remove media from scroller.' });
     }
   };
 
   async function fetchPendingMedia() {
     try {
       const token = localStorage.getItem('sac_auth_token');
-      const response = await fetch(`${BASE_URL}/api/media/uploads/`, {
+      // shortcut: first page only (25 items); the rest are reachable under All Uploads > Pending.
+      const response = await fetch(`${BASE_URL}/api/media/uploads/?status=pending`, {
         headers: token ? { 'Authorization': `Token ${token}` } : {}
       });
       if (response.ok) {
         const data = await response.json();
-        const items = data.results || data;
-        
-        const pending = items.filter(item => 
-          item.status && item.status.toLowerCase().includes('pending')
-        );
-        
-        setPendingMedia(pending);
+        setPendingMedia(data.results || data);
       }
     } catch (err) {
       console.error("Failed to fetch media queue", err);
     }
   }
+
+  // Page 1 replaces the list (new filter / refresh); later pages append ("Load more").
+  async function fetchUploads(filter, page) {
+    const token = localStorage.getItem('sac_auth_token');
+    if (!token) return;
+    try {
+      const params = new URLSearchParams({ page });
+      if (filter) params.set('status', filter);
+      const res = await fetch(`${BASE_URL}/api/media/uploads/?${params}`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setUploads(prev => (page === 1 ? data.results : [...prev, ...data.results]));
+      setUploadsPage(page);
+      setUploadsHasMore(Boolean(data.next));
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to load uploads.' });
+    }
+  }
+
+  const handleFilterChange = (filter) => {
+    setUploadsFilter(filter);
+    fetchUploads(filter, 1);
+  };
 
   // --- File Selection Handlers ---
   const handleFileSelect = (selectedFile) => {
@@ -164,10 +201,11 @@ export default function Marketing() {
       setPreview(null);
       setStatus({ type: 'success', message: 'Media successfully submitted for review!' });
       fetchPendingMedia();
+      fetchUploads(uploadsFilter, 1);
       setTimeout(() => setStatus({ type: '', message: '' }), 4000);
     } catch (err) {
       console.error(err);
-      setUploadError('Failed to upload media. Check permissions and try again.');
+      setUploadError(err.response?.data?.file?.[0] || 'Failed to upload media. Check permissions and try again.');
     } finally {
       setUploading(false);
     }
@@ -185,6 +223,7 @@ export default function Marketing() {
       setStatus({ type: 'success', message: 'Graphic approved! Added to homepage media scroller.' });
       fetchPendingMedia();
       fetchFeaturedMedia(); // Refresh active list
+      fetchUploads(uploadsFilter, 1);
     } catch (e) {
       console.error("Failed to approve media", e);
       setStatus({ type: 'error', message: 'Failed to update approval status.' });
@@ -196,14 +235,16 @@ export default function Marketing() {
     try {
       const token = localStorage.getItem('sac_auth_token');
       await axios.post(`${BASE_URL}/api/media/uploads/${mediaId}/review/`, 
-        { status: 'Rejected' }, 
+        { status: 'rejected' },
         { headers: token ? { 'Authorization': `Token ${token}` } : {} }
       );
-      
+
       setStatus({ type: 'error', message: 'Graphic rejected and removed from queue.' });
       fetchPendingMedia();
+      fetchUploads(uploadsFilter, 1);
     } catch (e) {
       console.error("Failed to reject media", e);
+      setStatus({ type: 'error', message: 'Failed to update approval status.' });
     }
     setTimeout(() => setStatus({ type: '', message: '' }), 3000);
   };
@@ -226,13 +267,13 @@ export default function Marketing() {
             <p style={{ margin: 0 }}>Submit club media, approve assets for the scroller, and manage workflows.</p>
           </div>
           <a 
-            href="https://drive.google.com/drive/folders/13UeTL1NGKHBzyeIpbUNn2ggrPAM_2uGE/" 
-            target="_blank" 
-            rel="noopener noreferrer" 
+            href={DRIVE_FOLDER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-ghost"
             style={{ fontSize: '13px' }}
           >
-            ↗ Open Master GDrive
+            ↗ Open Marketing Drive
           </a>
         </div>
 
@@ -336,12 +377,7 @@ export default function Marketing() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
               {featuredMedia.map((item) => {
-                let imageUrl = item.file;
-                if (imageUrl && !imageUrl.startsWith('http')) {
-                  imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
-                } else if (imageUrl) {
-                  imageUrl = imageUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/');
-                }
+                const imageUrl = mediaUrl(item.file);
 
                 return (
                   <div key={item.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -382,11 +418,13 @@ export default function Marketing() {
         )}
 
         {/* --- APPROVAL QUEUE SECTION --- */}
-        {!hasAccess && userProfile ? (
-          <div style={{ padding: '40px', textAlign: 'center', background: 'var(--panel-2)', borderRadius: '4px', border: '1px solid var(--line)' }}>
-            <h3 style={{ color: 'var(--red)', marginTop: 0 }}>Restricted Approval Access</h3>
-            <p style={{ color: 'var(--text-dim)', marginBottom: 0 }}>You can submit files above, but you must be the Marketing Director or an Executive to approve items into the homepage scroller.</p>
-          </div>
+        {!hasAccess ? (
+          userProfile && (
+            <div style={{ padding: '40px', textAlign: 'center', background: 'var(--panel-2)', borderRadius: '4px', border: '1px solid var(--line)' }}>
+              <h3 style={{ color: 'var(--red)', marginTop: 0 }}>Restricted Approval Access</h3>
+              <p style={{ color: 'var(--text-dim)', marginBottom: 0 }}>You can submit files above, but you must be the Marketing Director or an Executive to approve items into the homepage scroller.</p>
+            </div>
+          )
         ) : (
           <>
             <h3 style={{ color: 'var(--accent)', marginBottom: '16px' }}>Pending Scroller Approvals ({pendingMedia.length})</h3>
@@ -396,12 +434,7 @@ export default function Marketing() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                 {pendingMedia.map((media) => {
-                  let imageUrl = media.file;
-                  if (imageUrl && !imageUrl.startsWith('http')) {
-                    imageUrl = `https://autkzjewmeifwfsrgrvi.supabase.co/storage/v1/object/public/marketing-media/${imageUrl}`;
-                  } else if (imageUrl) {
-                    imageUrl = imageUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/');
-                  }
+                  const imageUrl = mediaUrl(media.file);
 
                   return (
                     <div key={media.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -438,6 +471,77 @@ export default function Marketing() {
               </div>
             )}
           </>
+        )}
+
+        {/* --- ALL UPLOADS (Director/Exec see everyone's; officers see their own) --- */}
+        {userProfile && (
+          <div style={{ marginTop: '40px' }}>
+            <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 30px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <h3 style={{ color: 'var(--accent)', margin: 0 }}>{hasAccess ? 'All Uploads' : 'My Uploads'}</h3>
+              <label style={{ fontSize: '13px', color: 'var(--text-dim)' }}>
+                Status{' '}
+                <select
+                  value={uploadsFilter}
+                  onChange={(e) => handleFilterChange(e.target.value)}
+                  style={{ padding: '6px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '4px', color: 'var(--text)' }}
+                >
+                  <option value="">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved (on the wheel)</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+            </div>
+
+            {uploads.length === 0 ? (
+              <p style={{ color: 'var(--text-dim)' }}>No uploads yet.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+                {uploads.map((item) => {
+                  const imageUrl = mediaUrl(item.file);
+                  return (
+                    <div key={item.id} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <a href={imageUrl || undefined} target="_blank" rel="noopener noreferrer">
+                        <div style={{ height: '140px', background: '#222', backgroundImage: imageUrl ? `url(${imageUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                      </a>
+                      <div style={{ padding: '12px' }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', wordBreak: 'break-all' }}>{item.title || 'Untitled Asset'}</h4>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '10px' }}>
+                          {item.uploaded_by_username} • {item.created_at?.split('T')[0]} • {item.status}
+                        </div>
+                        {hasAccess && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {item.status !== 'approved' && (
+                              <button onClick={() => handleApprove(item.id)} className="btn-primary" style={{ padding: '6px', fontSize: '12px', flex: 1, justifyContent: 'center' }}>
+                                Approve
+                              </button>
+                            )}
+                            {item.status === 'pending' && (
+                              <button onClick={() => handleReject(item.id)} className="btn-ghost" style={{ padding: '6px', fontSize: '12px', flex: 1, justifyContent: 'center', borderColor: 'var(--red)', color: 'var(--red)' }}>
+                                Reject
+                              </button>
+                            )}
+                            {item.status === 'approved' && (
+                              <button onClick={() => handleRemove(item.id)} className="btn-ghost" style={{ padding: '6px', fontSize: '12px', flex: 1, justifyContent: 'center', borderColor: 'var(--red)', color: 'var(--red)' }}>
+                                Remove from Scroller
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {uploadsHasMore && (
+              <button onClick={() => fetchUploads(uploadsFilter, uploadsPage + 1)} className="btn-ghost" style={{ marginTop: '16px', fontSize: '13px' }}>
+                Load more
+              </button>
+            )}
+          </div>
         )}
       </div>
     </main>
