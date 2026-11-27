@@ -9,6 +9,7 @@ import Projects from './pages/Projects';
 import Rnd from './pages/Rnd';
 import Finance from './pages/Finance';
 import FinanceConfirm from './pages/FinanceConfirm';
+import DirectorDashboard from './pages/DirectorDashboard';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/rnd" element={<Rnd />} />
         <Route path="/finance" element={<Finance />} />
         <Route path="/finance/requests/:id/confirm" element={<FinanceConfirm />} />
+        <Route path="/director" element={<DirectorDashboard />} />
       </Routes>
     </Router>
   );

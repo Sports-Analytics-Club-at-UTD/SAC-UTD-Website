@@ -33,6 +33,37 @@ class EventCreationPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Event.objects.count(), 0)
 
+    def test_any_director_can_submit_event_request_with_full_metadata(self):
+        finance_dir = make_user("findir_ev", role=Role.DIRECTOR_FINANCE)
+        self.client.force_authenticate(user=finance_dir)
+        response = self.client.post(
+            "/api/events/request/",
+            {
+                "name": "Spring Sports Analytics Expo",
+                "classification": "speaker_event",
+                "date": "2026-04-10",
+                "start_time": "18:00:00",
+                "end_time": "20:00:00",
+                "room_number": "JSOM 1.118",
+                "reservation_id": "RES-2026-4410",
+                "event_lead": "Maya Patel",
+                "event_lead_email": "maya.patel@utdallas.edu",
+                "estimated_attendance": 95,
+                "description": "Annual speaker night and project expo.",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["room_number"], "JSOM 1.118")
+        self.assertEqual(response.data["location"], "JSOM 1.118")
+        self.assertEqual(response.data["reservation_id"], "RES-2026-4410")
+        self.assertEqual(response.data["event_lead"], "Maya Patel")
+        self.assertEqual(response.data["estimated_attendance"], 95)
+
+        self.client.force_authenticate(user=self.member)
+        member_resp = self.client.post("/api/events/request/", self.payload, format="json")
+        self.assertEqual(member_resp.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_any_authenticated_member_can_list_events(self):
         Event.objects.create(
             name="Trivia Night", date="2026-09-01", start_time="19:00:00", created_by=self.events_director

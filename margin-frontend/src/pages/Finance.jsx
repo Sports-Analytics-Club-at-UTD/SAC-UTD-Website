@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { extractErrorMessage, financeApi } from '../api/financeApi';
 import CostAnalyticsDashboard from '../components/finance/CostAnalyticsDashboard';
-import FundingRequestForm from '../components/finance/FundingRequestForm';
 import GlobalBudgetPanel from '../components/finance/GlobalBudgetPanel';
 import UnifiedRequestsHub from '../components/finance/UnifiedRequestsHub';
 import { SEMESTER_OPTIONS, getCurrentSemesterKey } from '../utils/semesters';
@@ -45,13 +44,9 @@ export default function Finance() {
   const normalizedTab = rawTab === 'review' || rawTab === 'refunds' ? 'requests' : rawTab;
 
   const allowedTabs = isFinanceDirector
-    ? ['submit', 'requests', 'analytics', 'global_budget']
-    : ['submit', 'requests'];
-  const activeTab = allowedTabs.includes(normalizedTab)
-    ? normalizedTab
-    : isFinanceDirector
-      ? 'requests'
-      : 'submit';
+    ? ['requests', 'analytics', 'global_budget']
+    : ['requests'];
+  const activeTab = allowedTabs.includes(normalizedTab) ? normalizedTab : 'requests';
 
   const hasSemesterParam = searchParams.has('semester');
   const selectedSemester = hasSemesterParam
@@ -141,14 +136,6 @@ export default function Finance() {
             <nav className="sac-tabs" aria-label="Finance Sections">
               <button
                 type="button"
-                className={`sac-tab ${activeTab === 'submit' ? 'active' : ''}`}
-                onClick={() => setTab('submit')}
-              >
-                Submit Request
-              </button>
-
-              <button
-                type="button"
                 className={`sac-tab ${activeTab === 'requests' ? 'active' : ''}`}
                 onClick={() => setTab('requests')}
               >
@@ -176,9 +163,6 @@ export default function Finance() {
               )}
             </nav>
 
-            {activeTab === 'submit' && (
-              <FundingRequestForm user={user} semester={selectedSemester} />
-            )}
             {activeTab === 'requests' && (
               <UnifiedRequestsHub
                 semester={selectedSemester}

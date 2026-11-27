@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.models import Role
+from accounts.permissions import IsDirectorOrExec
 from .models import Event, EventRegistration
 from .serializers import EventSerializer
 
@@ -43,14 +44,25 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         # register/unregister are member actions — any authenticated,
-        # approved user should be able to hit them. Only the CRUD actions
-        # (create/update/destroy) need the director-only gate.
+        # approved user should be able to hit them. submit_request is open
+        # to any director/exec via the General Director Dashboard.
         if self.action in ("register", "unregister"):
             return [permissions.IsAuthenticated()]
+        if self.action == "submit_request":
+            return [permissions.IsAuthenticated(), IsDirectorOrExec()]
         return [permission() for permission in self.permission_classes]
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        location = serializer.validated_data.get("location") or serializer.validated_data.get("room_number", "")
+        serializer.save(created_by=self.request.user, location=location)
+
+    @action(detail=False, methods=["post"], url_path="request")
+    def submit_request(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        location = serializer.validated_data.get("location") or serializer.validated_data.get("room_number", "")
+        serializer.save(created_by=request.user, location=location)
+        return Response(serializer.data, status=201)
 
     @action(detail=True, methods=["post"])
     def register(self, request, pk=None):

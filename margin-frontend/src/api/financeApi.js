@@ -67,6 +67,11 @@ async function apiRequest(path, { method = 'GET', body, auth = true, isFormData 
 export const financeApi = {
   getWhoAmI: () => apiRequest('/api/auth/whoami/'),
   getEvents: () => apiRequest('/api/events/'),
+  createEventRequest: (payload) =>
+    apiRequest('/api/events/request/', {
+      method: 'POST',
+      body: payload,
+    }),
   getUtdQuota: (semester = '') =>
     apiRequest(
       semester

@@ -153,6 +153,11 @@ export default function Home() {
               <>
                 <Link to="/events" onClick={() => setIsNavOpen(false)}>Events</Link>
                 <Link to="/projects" onClick={() => setIsNavOpen(false)}>Projects</Link>
+                {(userProfile.is_director || userProfile.is_superuser) && (
+                  <Link to="/director" style={{ color: 'var(--accent)' }} onClick={() => setIsNavOpen(false)}>
+                    Director Hub
+                  </Link>
+                )}
                 <Link
                   to="/finance"
                   style={

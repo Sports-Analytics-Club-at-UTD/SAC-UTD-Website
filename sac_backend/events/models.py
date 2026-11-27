@@ -7,15 +7,29 @@ from core.models import TimeStampedModel
 class Event(TimeStampedModel):
     """
     A single club event on the calendar. Created by the Events Director
-    from the Events Page. Name/Date/Time/Register button, per spec.
+    or requested from the General Director Dashboard.
     """
 
+    class Classification(models.TextChoices):
+        SOCIAL = "social", "Social"
+        WORKSHOP = "workshop", "Workshop"
+        SPEAKER_EVENT = "speaker_event", "Speaker Event"
+        PROJECTS = "projects", "Projects"
+
     name = models.CharField(max_length=200)
+    classification = models.CharField(
+        max_length=32, choices=Classification.choices, blank=True
+    )
     description = models.TextField(blank=True)
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField(null=True, blank=True)
     location = models.CharField(max_length=200, blank=True)
+    room_number = models.CharField(max_length=64, blank=True)
+    reservation_id = models.CharField(max_length=100, blank=True)
+    event_lead = models.CharField(max_length=150, blank=True)
+    event_lead_email = models.EmailField(blank=True)
+    estimated_attendance = models.PositiveIntegerField(null=True, blank=True)
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="events_created"
