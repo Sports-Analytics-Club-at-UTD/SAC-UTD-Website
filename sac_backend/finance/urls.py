@@ -5,10 +5,13 @@ from .views import (
     ApprovalLookupView,
     BudgetCategoryViewSet,
     BudgetEntryViewSet,
+    ClubTreasuryUpdateView,
     CostAnalyticsCsvExportView,
     CostAnalyticsView,
     FundingRequestViewSet,
+    GlobalBudgetView,
     RefundRequestViewSet,
+    SemesterBudgetUpsertView,
     UtdQuotaView,
 )
 
@@ -28,5 +31,16 @@ urlpatterns = [
         "analytics/export.csv",
         CostAnalyticsCsvExportView.as_view(),
         name="analytics-export-csv",
+    ),
+    path("global-budget/", GlobalBudgetView.as_view(), name="global-budget"),
+    path(
+        "global-budget/treasury/",
+        ClubTreasuryUpdateView.as_view(),
+        name="global-budget-treasury",
+    ),
+    path(
+        "global-budget/semesters/<str:semester_key>/",
+        SemesterBudgetUpsertView.as_view(),
+        name="global-budget-semester",
     ),
 ] + router.urls

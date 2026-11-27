@@ -23,25 +23,31 @@ from .emails import (
 from .models import (
     BudgetCategory,
     BudgetEntry,
+    ClubTreasury,
     FundingRequest,
     FundingRequestItem,
     FundingRequestModificationLog,
     RefundRequest,
+    SemesterBudget,
 )
 from .serializers import (
     BudgetCategorySerializer,
     BudgetEntrySerializer,
+    ClubTreasurySerializer,
     FundingApproveSerializer,
     FundingDenySerializer,
     FundingModifySerializer,
     FundingRequestItemSerializer,
     FundingRequestSerializer,
+    FundingWorkflowUpdateSerializer,
     RefundRequestSerializer,
     RefundStatusUpdateSerializer,
+    SemesterBudgetSerializer,
     UtdFormUpdateSerializer,
 )
 from .services import (
     compute_items_diff,
+    format_semester_label,
     generate_unique_approval_id,
     get_utd_quota,
     parse_semester_filter,
@@ -165,7 +171,12 @@ class FundingRequestViewSet(viewsets.ModelViewSet):
             FundingRequest.objects.select_related(
                 "requester", "reviewed_by", "event"
             )
-            .prefetch_related("items", "modification_logs__modified_by")
+            .prefetch_related(
+                "items",
+                "modification_logs__modified_by",
+                "refund_requests__requester",
+                "refund_requests__reviewed_by",
+            )
             .all()
         )
         if not _is_finance_director(self.request.user):
@@ -408,12 +419,76 @@ class FundingRequestViewSet(viewsets.ModelViewSet):
         )
         return response
 
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="workflow",
+        permission_classes=[IsFinanceDirector],
+    )
+    def workflow(self, request, pk=None):
+        funding_request = self.get_object()
+        ser = FundingWorkflowUpdateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        now = timezone.now()
+
+        if "school_review_status" in data:
+            if (
+                funding_request.funding_source
+                != FundingRequest.FundingSource.UTD_PROGRAMMING_FUNDS
+            ):
+                raise ValidationError(
+                    {
+                        "school_review_status": "School review status only applies to UTD Programming Funds requests."
+                    }
+                )
+            new_school_status = data["school_review_status"]
+            funding_request.school_review_status = new_school_status
+            if new_school_status != FundingRequest.SchoolReviewStatus.NOT_SUBMITTED:
+                funding_request.utd_form_completed = True
+                if not funding_request.utd_form_completed_at:
+                    funding_request.utd_form_completed_at = now
+                if not funding_request.school_submitted_at:
+                    funding_request.school_submitted_at = now
+
+        if data.get("divert_to_club_funds"):
+            if (
+                funding_request.funding_source
+                != FundingRequest.FundingSource.UTD_PROGRAMMING_FUNDS
+                or funding_request.school_review_status
+                != FundingRequest.SchoolReviewStatus.REJECTED
+            ):
+                raise ValidationError(
+                    {
+                        "divert_to_club_funds": "Can only divert to Club Funds after School Funds rejection."
+                    }
+                )
+            funding_request.diverted_from_school = True
+            funding_request.funding_source = FundingRequest.FundingSource.CLUB_FUNDS
+            funding_request.utd_form_required = False
+            funding_request.status = FundingRequest.Status.UNCHECKED
+            funding_request.approval_id = None
+            funding_request.reviewed_by = request.user
+            funding_request.reviewed_at = now
+
+        if "items_bought" in data:
+            funding_request.items_bought = data["items_bought"]
+            funding_request.items_bought_at = now if data["items_bought"] else None
+
+        if "club_refunded" in data:
+            funding_request.club_refunded = data["club_refunded"]
+            funding_request.club_refunded_at = now if data["club_refunded"] else None
+
+        funding_request.save()
+        return Response(self.get_serializer(funding_request).data)
+
 
 class UtdQuotaView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return Response(get_utd_quota())
+        semester = (request.query_params.get("semester") or "").strip() or None
+        return Response(get_utd_quota(semester=semester))
 
 
 class ApprovalLookupView(APIView):
@@ -490,26 +565,52 @@ class RefundRequestViewSet(viewsets.ModelViewSet):
         status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
+        semester = (self.request.query_params.get("semester") or "").strip()
+        if semester:
+            start_d, end_d = parse_semester_filter(semester)
+            qs = qs.filter(
+                funding_request__created_at__date__gte=start_d,
+                funding_request__created_at__date__lte=end_d,
+            )
         return qs
 
     def create(self, request, *args, **kwargs):
         approval_id = (request.data.get("approval_id") or "").strip()
-        if not approval_id:
-            raise ValidationError({"approval_id": "Approval ID is required."})
+        funding_request_id = request.data.get("funding_request_id")
 
-        funding_request = (
-            FundingRequest.objects.prefetch_related("items")
-            .filter(
-                approval_id__iexact=approval_id,
-                status=FundingRequest.Status.APPROVED,
+        if funding_request_id:
+            funding_request = (
+                FundingRequest.objects.prefetch_related("items")
+                .filter(
+                    pk=funding_request_id,
+                    status=FundingRequest.Status.APPROVED,
+                )
+                .first()
             )
-            .first()
-        )
-        if not funding_request:
+            if not funding_request:
+                raise ValidationError(
+                    {
+                        "funding_request_id": "Invalid Funding Request. Must be an approved funding request."
+                    }
+                )
+        elif approval_id:
+            funding_request = (
+                FundingRequest.objects.prefetch_related("items")
+                .filter(
+                    approval_id__iexact=approval_id,
+                    status=FundingRequest.Status.APPROVED,
+                )
+                .first()
+            )
+            if not funding_request:
+                raise ValidationError(
+                    {
+                        "approval_id": "Invalid Approval ID. Must match an approved funding request."
+                    }
+                )
+        else:
             raise ValidationError(
-                {
-                    "approval_id": "Invalid Approval ID. Must match an approved funding request."
-                }
+                {"approval_id": "Approval ID or Funding Request ID is required."}
             )
 
         receipt_file = request.FILES.get("receipt")
@@ -692,12 +793,28 @@ def _compute_analytics_payload(params):
                     )
 
     remaining_allocation = max(Decimal("0.00"), total_approved - total_reimbursed)
-    pending_review_count = FundingRequest.objects.filter(
+    review_qs = FundingRequest.objects.filter(
         status__in=[FundingRequest.Status.UNCHECKED, FundingRequest.Status.MODIFIED]
-    ).count()
-    pending_refund_count = RefundRequest.objects.filter(
-        status=RefundRequest.Status.PENDING
-    ).count()
+    )
+    review_qs = _apply_date_and_semester_filters(review_qs, params)
+    pending_review_count = review_qs.count()
+
+    refund_qs = RefundRequest.objects.filter(status=RefundRequest.Status.PENDING)
+    semester_param = (params.get("semester") or "").strip() or None
+    if semester_param:
+        s_start, s_end = parse_semester_filter(semester_param)
+        refund_qs = refund_qs.filter(
+            funding_request__created_at__date__gte=s_start,
+            funding_request__created_at__date__lte=s_end,
+        )
+    pending_refund_count = refund_qs.count()
+
+    treasury = ClubTreasury.get_solo()
+    semester_budget_obj = (
+        SemesterBudget.objects.filter(semester_key=semester_param.lower()).first()
+        if semester_param
+        else None
+    )
 
     return {
         "kpis": {
@@ -712,7 +829,13 @@ def _compute_analytics_payload(params):
             "pending_refund_count": pending_refund_count,
             "utd_forms_pending_count": utd_forms_pending_count,
         },
-        "utd_quota": get_utd_quota(),
+        "utd_quota": get_utd_quota(semester=semester_param),
+        "treasury": ClubTreasurySerializer(treasury).data,
+        "semester_budget": (
+            SemesterBudgetSerializer(semester_budget_obj).data
+            if semester_budget_obj
+            else None
+        ),
         "by_category": [
             {"category": cat, "total": float(val)}
             for cat, val in category_totals.items()
@@ -831,3 +954,116 @@ class CostAnalyticsCsvExportView(APIView):
                 ]
             )
         return response
+
+
+def _build_global_budget_payload():
+    treasury = ClubTreasury.get_solo()
+    all_approved = list(
+        FundingRequest.objects.filter(status=FundingRequest.Status.APPROVED)
+        .prefetch_related("items", "refund_requests")
+    )
+    total_club_approved = sum(
+        (
+            fr.total_amount
+            for fr in all_approved
+            if fr.funding_source != FundingRequest.FundingSource.UTD_PROGRAMMING_FUNDS
+        ),
+        Decimal("0.00"),
+    )
+    projected_balance = treasury.current_balance - total_club_approved
+
+    semesters_payload = []
+    for sb in SemesterBudget.objects.all().order_by("-semester_key"):
+        try:
+            start_d, end_d = parse_semester_filter(sb.semester_key)
+        except ValidationError:
+            continue
+        sem_reqs = [
+            fr
+            for fr in all_approved
+            if start_d <= fr.created_at.date() <= end_d
+        ]
+        actual_approved = sum((fr.total_amount for fr in sem_reqs), Decimal("0.00"))
+        actual_club = sum(
+            (
+                fr.total_amount
+                for fr in sem_reqs
+                if fr.funding_source != FundingRequest.FundingSource.UTD_PROGRAMMING_FUNDS
+            ),
+            Decimal("0.00"),
+        )
+        actual_reimbursed = sum(
+            (
+                r.amount_claimed
+                for fr in sem_reqs
+                for r in fr.refund_requests.all()
+                if r.status == RefundRequest.Status.REIMBURSED
+            ),
+            Decimal("0.00"),
+        )
+        spending_remaining = sb.spending_goal - actual_approved
+        spending_pct = (
+            float((actual_approved / sb.spending_goal) * Decimal("100"))
+            if sb.spending_goal > Decimal("0")
+            else 0.0
+        )
+        fundraising_pct = (
+            float((sb.fundraising_raised / sb.fundraising_goal) * Decimal("100"))
+            if sb.fundraising_goal > Decimal("0")
+            else 0.0
+        )
+        row = SemesterBudgetSerializer(sb).data
+        row.update(
+            {
+                "actual_approved_spend": float(actual_approved),
+                "actual_club_funds_spend": float(actual_club),
+                "actual_reimbursed_spend": float(actual_reimbursed),
+                "spending_remaining": float(spending_remaining),
+                "spending_pct": round(spending_pct, 1),
+                "fundraising_pct": round(fundraising_pct, 1),
+            }
+        )
+        semesters_payload.append(row)
+
+    return {
+        "treasury": ClubTreasurySerializer(treasury).data,
+        "total_club_funds_approved": float(total_club_approved),
+        "projected_balance_after_club_spend": float(projected_balance),
+        "semesters": semesters_payload,
+    }
+
+
+class GlobalBudgetView(APIView):
+    permission_classes = [IsFinanceDirector]
+
+    def get(self, request):
+        return Response(_build_global_budget_payload())
+
+
+class ClubTreasuryUpdateView(APIView):
+    permission_classes = [IsFinanceDirector]
+
+    def patch(self, request):
+        treasury = ClubTreasury.get_solo()
+        ser = ClubTreasurySerializer(treasury, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save(updated_by=request.user)
+        return Response(_build_global_budget_payload())
+
+
+class SemesterBudgetUpsertView(APIView):
+    permission_classes = [IsFinanceDirector]
+
+    def put(self, request, semester_key):
+        normalized_key = semester_key.strip().lower()
+        parse_semester_filter(normalized_key)
+        label = format_semester_label(normalized_key)
+
+        sb, _ = SemesterBudget.objects.get_or_create(
+            semester_key=normalized_key,
+            defaults={"label": label},
+        )
+        ser = SemesterBudgetSerializer(sb, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save(label=label, updated_by=request.user)
+        return Response(_build_global_budget_payload())

@@ -286,3 +286,47 @@ class FundingRequestWorkflowTests(APITestCase):
         # Formulas preserved
         self.assertTrue(str(ws["F32"].value).startswith("="))
         self.assertTrue(str(ws["G32"].value).startswith("="))
+
+    def test_school_reject_divert_to_club_funds_and_milestones(self):
+        create_resp = self._create_event_request("School -> Club Divert Test")
+        fr_id = create_resp.data["id"]
+        self._auth(self.director)
+
+        self.client.post(
+            f"/api/finance/funding-requests/{fr_id}/approve/",
+            {"funding_source": FundingRequest.FundingSource.UTD_PROGRAMMING_FUNDS},
+            format="json",
+        )
+        # Submitted to school -> Rejected
+        s_resp = self.client.patch(
+            f"/api/finance/funding-requests/{fr_id}/workflow/",
+            {"school_review_status": FundingRequest.SchoolReviewStatus.REJECTED},
+            format="json",
+        )
+        self.assertEqual(s_resp.status_code, 200)
+        self.assertEqual(s_resp.data["school_review_status"], "rejected")
+
+        # Divert back to club funds -> resets to unchecked for Club Funds review
+        divert_resp = self.client.patch(
+            f"/api/finance/funding-requests/{fr_id}/workflow/",
+            {"divert_to_club_funds": True},
+            format="json",
+        )
+        self.assertEqual(divert_resp.status_code, 200)
+        self.assertTrue(divert_resp.data["diverted_from_school"])
+        self.assertEqual(divert_resp.data["funding_source"], "club_funds")
+        self.assertEqual(divert_resp.data["status"], "unchecked")
+
+        # Re-approve under Club Funds & mark items bought
+        self.client.post(
+            f"/api/finance/funding-requests/{fr_id}/approve/",
+            {"funding_source": FundingRequest.FundingSource.CLUB_FUNDS},
+            format="json",
+        )
+        bought_resp = self.client.patch(
+            f"/api/finance/funding-requests/{fr_id}/workflow/",
+            {"items_bought": True},
+            format="json",
+        )
+        self.assertEqual(bought_resp.status_code, 200)
+        self.assertTrue(bought_resp.data["items_bought"])

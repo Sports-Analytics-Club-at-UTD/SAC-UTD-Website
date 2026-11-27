@@ -5,7 +5,7 @@ import ApproveModal from './ApproveModal';
 import DenyModal from './DenyModal';
 import ModifyModal from './ModifyModal';
 
-export default function DirectorReviewQueue() {
+export default function DirectorReviewQueue({ semester = '' }) {
   const [requests, setRequests] = useState([]);
   const [utdQuota, setUtdQuota] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +25,10 @@ export default function DirectorReviewQueue() {
     setLoading(true);
     setError('');
     try {
+      const params = semester ? { ...filters, semester } : filters;
       const [reqsData, quotaData] = await Promise.all([
-        financeApi.listFundingRequests(filters),
-        financeApi.getUtdQuota(),
+        financeApi.listFundingRequests(params),
+        financeApi.getUtdQuota(semester),
       ]);
       setRequests(asList(reqsData));
       setUtdQuota(quotaData);
@@ -36,13 +37,14 @@ export default function DirectorReviewQueue() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, semester]);
 
   useEffect(() => {
     let active = true;
+    const params = semester ? { ...filters, semester } : filters;
     Promise.all([
-      financeApi.listFundingRequests(filters),
-      financeApi.getUtdQuota(),
+      financeApi.listFundingRequests(params),
+      financeApi.getUtdQuota(semester),
     ])
       .then(([reqsData, quotaData]) => {
         if (!active) return;
@@ -59,7 +61,7 @@ export default function DirectorReviewQueue() {
     return () => {
       active = false;
     };
-  }, [filters]);
+  }, [filters, semester]);
 
   const handleToggleUtdForm = async (reqItem) => {
     try {

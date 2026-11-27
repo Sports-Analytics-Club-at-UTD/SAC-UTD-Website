@@ -67,7 +67,23 @@ async function apiRequest(path, { method = 'GET', body, auth = true, isFormData 
 export const financeApi = {
   getWhoAmI: () => apiRequest('/api/auth/whoami/'),
   getEvents: () => apiRequest('/api/events/'),
-  getUtdQuota: () => apiRequest('/api/finance/utd-quota/'),
+  getUtdQuota: (semester = '') =>
+    apiRequest(
+      semester
+        ? `/api/finance/utd-quota/?semester=${encodeURIComponent(semester)}`
+        : '/api/finance/utd-quota/'
+    ),
+  getGlobalBudget: () => apiRequest('/api/finance/global-budget/'),
+  updateClubTreasury: (payload) =>
+    apiRequest('/api/finance/global-budget/treasury/', {
+      method: 'PATCH',
+      body: payload,
+    }),
+  upsertSemesterBudget: (semesterKey, payload) =>
+    apiRequest(`/api/finance/global-budget/semesters/${encodeURIComponent(semesterKey)}/`, {
+      method: 'PUT',
+      body: payload,
+    }),
 
   listFundingRequests: (params = {}) => {
     const qs = new URLSearchParams();
@@ -112,6 +128,11 @@ export const financeApi = {
     apiRequest(`/api/finance/funding-requests/${id}/utd-form/`, {
       method: 'PATCH',
       body: { utd_form_completed: completed },
+    }),
+  updateFundingWorkflow: (id, payload) =>
+    apiRequest(`/api/finance/funding-requests/${id}/workflow/`, {
+      method: 'PATCH',
+      body: payload,
     }),
   downloadUtdBudgetXlsx: async (id, filenameHint = '') => {
     const token = localStorage.getItem('sac_auth_token');
@@ -178,5 +199,24 @@ export const financeApi = {
     });
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
     return `${BASE_URL}/api/finance/analytics/export.csv${suffix}`;
+  },
+  downloadAnalyticsCsv: async (params = {}) => {
+    const token = localStorage.getItem('sac_auth_token');
+    const url = financeApi.getAnalyticsCsvUrl(params);
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Token ${token}` } : {},
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to export CSV (HTTP ${res.status})`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'sac-finance-audit.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
   },
 };

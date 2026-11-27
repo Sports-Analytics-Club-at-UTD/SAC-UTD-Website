@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { extractErrorMessage, financeApi } from '../api/financeApi';
-import DirectorReviewQueue from '../components/finance/DirectorReviewQueue';
+import CostAnalyticsDashboard from '../components/finance/CostAnalyticsDashboard';
 import FundingRequestForm from '../components/finance/FundingRequestForm';
+import GlobalBudgetPanel from '../components/finance/GlobalBudgetPanel';
+import UnifiedRequestsHub from '../components/finance/UnifiedRequestsHub';
+import { SEMESTER_OPTIONS, getCurrentSemesterKey } from '../utils/semesters';
 import '../styles/financePortal.css';
 
 export default function Finance() {
@@ -38,21 +41,36 @@ export default function Finance() {
     user && (user.is_superuser || user.role === 'director_finance' || user.role === 'exec')
   );
 
-  const requestedTab = searchParams.get('tab') || '';
+  const rawTab = searchParams.get('tab') || '';
+  const normalizedTab = rawTab === 'review' || rawTab === 'refunds' ? 'requests' : rawTab;
+
   const allowedTabs = isFinanceDirector
-    ? ['submit', 'review', 'refunds', 'analytics']
-    : ['submit', 'refunds'];
-  const activeTab = allowedTabs.includes(requestedTab)
-    ? requestedTab
+    ? ['submit', 'requests', 'analytics', 'global_budget']
+    : ['submit', 'requests'];
+  const activeTab = allowedTabs.includes(normalizedTab)
+    ? normalizedTab
     : isFinanceDirector
-      ? 'review'
+      ? 'requests'
       : 'submit';
+
+  const hasSemesterParam = searchParams.has('semester');
+  const selectedSemester = hasSemesterParam
+    ? searchParams.get('semester') || ''
+    : getCurrentSemesterKey();
 
   const setTab = (tabKey) => {
     const next = new URLSearchParams(searchParams);
     next.set('tab', tabKey);
     setSearchParams(next, { replace: true });
   };
+
+  const setSemester = (semKey) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('semester', semKey);
+    setSearchParams(next, { replace: true });
+  };
+
+  const prefilledApprovalId = searchParams.get('approval_id') || '';
 
   const roleBadgeLabel = user?.is_superuser
     ? 'ACCESS: SUPERUSER'
@@ -88,7 +106,36 @@ export default function Finance() {
                   Finance Dashboard
                 </h1>
               </div>
-              <div className="sac-node-badge">{roleBadgeLabel}</div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label htmlFor="global-semester-select" className="sac-eyebrow">
+                    Semester
+                  </label>
+                  <select
+                    id="global-semester-select"
+                    value={selectedSemester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    style={{
+                      background: 'var(--sac-panel-hi)',
+                      border: '1px solid var(--sac-line)',
+                      borderRadius: 'var(--sac-radius-sm)',
+                      color: 'var(--sac-text-100)',
+                      padding: '8px 12px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {SEMESTER_OPTIONS.map((opt) => (
+                      <option key={opt.value || 'all'} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sac-node-badge">{roleBadgeLabel}</div>
+              </div>
             </header>
 
             <nav className="sac-tabs" aria-label="Finance Sections">
@@ -100,22 +147,12 @@ export default function Finance() {
                 Submit Request
               </button>
 
-              {isFinanceDirector && (
-                <button
-                  type="button"
-                  className={`sac-tab ${activeTab === 'review' ? 'active' : ''}`}
-                  onClick={() => setTab('review')}
-                >
-                  Review Queue
-                </button>
-              )}
-
               <button
                 type="button"
-                className={`sac-tab ${activeTab === 'refunds' ? 'active' : ''}`}
-                onClick={() => setTab('refunds')}
+                className={`sac-tab ${activeTab === 'requests' ? 'active' : ''}`}
+                onClick={() => setTab('requests')}
               >
-                Refunds
+                Requests
               </button>
 
               {isFinanceDirector && (
@@ -127,41 +164,33 @@ export default function Finance() {
                   Cost Analytics
                 </button>
               )}
+
+              {isFinanceDirector && (
+                <button
+                  type="button"
+                  className={`sac-tab ${activeTab === 'global_budget' ? 'active' : ''}`}
+                  onClick={() => setTab('global_budget')}
+                >
+                  Global Budget
+                </button>
+              )}
             </nav>
 
-            {activeTab === 'submit' && <FundingRequestForm user={user} />}
-            {activeTab === 'review' && isFinanceDirector && <DirectorReviewQueue />}
-            {activeTab === 'refunds' && (
-              <div className="sac-panel">
-                <div className="sac-eyebrow">Phase 4</div>
-                <h2 className="sac-heading-md" style={{ marginTop: 4 }}>
-                  Refund Requests &amp; Receipt Queue
-                </h2>
-                <p className="sac-muted" style={{ marginBottom: 0 }}>
-                  Refund submission (with live Approval ID lookup &amp; private receipt upload) and
-                  the Finance Director Refund Queue will be wired in Phase 4.
-                  {searchParams.get('approval_id') && (
-                    <>
-                      {' '}
-                      Pre-selected Approval ID:{' '}
-                      <span className="sac-mono" style={{ color: 'var(--sac-orange-400)' }}>
-                        {searchParams.get('approval_id')}
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
+            {activeTab === 'submit' && (
+              <FundingRequestForm user={user} semester={selectedSemester} />
+            )}
+            {activeTab === 'requests' && (
+              <UnifiedRequestsHub
+                semester={selectedSemester}
+                isFinanceDirector={isFinanceDirector}
+                initialApprovalId={prefilledApprovalId}
+              />
             )}
             {activeTab === 'analytics' && isFinanceDirector && (
-              <div className="sac-panel">
-                <div className="sac-eyebrow">Phase 4</div>
-                <h2 className="sac-heading-md" style={{ marginTop: 4 }}>
-                  Cost Breakdown &amp; Analytics
-                </h2>
-                <p className="sac-muted" style={{ marginBottom: 0 }}>
-                  Recharts visualizations, KPI cards, and CSV audit export will be wired in Phase 4.
-                </p>
-              </div>
+              <CostAnalyticsDashboard semester={selectedSemester} />
+            )}
+            {activeTab === 'global_budget' && isFinanceDirector && (
+              <GlobalBudgetPanel semester={selectedSemester} />
             )}
           </>
         )}

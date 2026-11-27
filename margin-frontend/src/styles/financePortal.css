@@ -607,3 +607,110 @@
   font-family: var(--sac-font-mono);
   font-size: 13px;
 }
+
+/* ---------- Phase 4: KPIs, Charts, Split Receipt Viewer & Dropzone ---------- */
+
+.sac-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sac-kpi-card {
+  background: var(--sac-panel);
+  border: 1px solid var(--sac-line);
+  border-top: 2px solid var(--sac-orange-500);
+  border-radius: var(--sac-radius-md);
+  padding: 16px 18px;
+}
+
+.sac-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 20px;
+}
+
+.sac-split-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.sac-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border: 1px dashed var(--sac-line);
+  border-radius: var(--sac-radius-sm);
+  background: var(--sac-void);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sac-dropzone:hover {
+  border-color: var(--sac-orange-500);
+  background: rgba(232, 114, 12, 0.04);
+}
+
+/* ---------- Branch Visualizer ---------- */
+
+.sac-branch-box {
+  background: var(--sac-panel);
+  border: 1px solid var(--sac-line);
+  border-radius: var(--sac-radius-sm);
+  padding: 12px 14px;
+  margin-top: 12px;
+}
+
+.sac-branch-track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sac-branch-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--sac-radius-sm);
+  border: 1px solid var(--sac-line);
+  background: var(--sac-void);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sac-text-400);
+}
+
+.sac-branch-node.done {
+  border-color: rgba(76, 173, 125, 0.55);
+  background: rgba(76, 173, 125, 0.12);
+  color: var(--sac-status-green);
+}
+
+.sac-branch-node.active {
+  border-color: var(--sac-orange-500);
+  background: rgba(232, 114, 12, 0.14);
+  color: var(--sac-orange-400);
+  font-weight: 600;
+}
+
+.sac-branch-node.rejected {
+  border-color: rgba(255, 93, 93, 0.55);
+  background: rgba(255, 93, 93, 0.12);
+  color: var(--sac-status-red);
+  font-weight: 600;
+}
+
+.sac-branch-arrow {
+  color: var(--sac-text-600);
+  font-family: var(--sac-font-mono);
+  font-size: 13px;
+}

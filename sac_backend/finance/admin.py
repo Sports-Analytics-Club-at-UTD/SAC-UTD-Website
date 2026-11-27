@@ -3,10 +3,12 @@ from django.contrib import admin
 from .models import (
     BudgetCategory,
     BudgetEntry,
+    ClubTreasury,
     FundingRequest,
     FundingRequestItem,
     FundingRequestModificationLog,
     RefundRequest,
+    SemesterBudget,
 )
 
 
@@ -61,3 +63,21 @@ class RefundRequestAdmin(admin.ModelAdmin):
     )
     list_filter = ("status",)
     search_fields = ("approval_id_entered", "requester__username")
+
+
+@admin.register(ClubTreasury)
+class ClubTreasuryAdmin(admin.ModelAdmin):
+    list_display = ("id", "current_balance", "updated_by", "updated_at")
+
+
+@admin.register(SemesterBudget)
+class SemesterBudgetAdmin(admin.ModelAdmin):
+    list_display = (
+        "semester_key",
+        "label",
+        "spending_goal",
+        "fundraising_goal",
+        "fundraising_raised",
+        "updated_at",
+    )
+    search_fields = ("semester_key", "label")

@@ -18,7 +18,7 @@ const CLASSIFICATION_OPTIONS = [
   { value: 'projects', label: 'Projects' },
 ];
 
-export default function FundingRequestForm({ user }) {
+export default function FundingRequestForm({ user, semester = '' }) {
   const [title, setTitle] = useState('');
   const [scope, setScope] = useState('specific_event');
   const [selectedEventKey, setSelectedEventKey] = useState('');
@@ -51,7 +51,7 @@ export default function FundingRequestForm({ user }) {
     try {
       const [eventsRes, reqsRes] = await Promise.all([
         financeApi.getEvents().catch(() => []),
-        financeApi.listFundingRequests(),
+        financeApi.listFundingRequests(semester ? { semester } : {}),
       ]);
       setEvents(asList(eventsRes));
       setMyRequests(asList(reqsRes));
@@ -66,7 +66,7 @@ export default function FundingRequestForm({ user }) {
     let active = true;
     Promise.all([
       financeApi.getEvents().catch(() => []),
-      financeApi.listFundingRequests(),
+      financeApi.listFundingRequests(semester ? { semester } : {}),
     ])
       .then(([eventsRes, reqsRes]) => {
         if (!active) return;
@@ -83,7 +83,7 @@ export default function FundingRequestForm({ user }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [semester]);
 
   const handleEventImport = (selectedKey) => {
     setSelectedEventKey(selectedKey);

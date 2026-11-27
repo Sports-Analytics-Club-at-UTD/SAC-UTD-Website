@@ -6,10 +6,12 @@ from events.models import Event
 from .models import (
     BudgetCategory,
     BudgetEntry,
+    ClubTreasury,
     FundingRequest,
     FundingRequestItem,
     FundingRequestModificationLog,
     RefundRequest,
+    SemesterBudget,
 )
 
 
@@ -88,11 +90,38 @@ class FundingRequestModificationLogSerializer(serializers.ModelSerializer):
         ]
 
 
+class AttachedRefundSerializer(serializers.ModelSerializer):
+    requester_username = serializers.CharField(
+        source="requester.username", read_only=True
+    )
+    reviewed_by_username = serializers.CharField(
+        source="reviewed_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = RefundRequest
+        fields = [
+            "id",
+            "approval_id_entered",
+            "requester",
+            "requester_username",
+            "amount_claimed",
+            "receipt_original_filename",
+            "receipt_content_type",
+            "comments",
+            "status",
+            "director_notes",
+            "reviewed_by_username",
+            "created_at",
+        ]
+
+
 class FundingRequestSerializer(serializers.ModelSerializer):
     items = FundingRequestItemSerializer(many=True)
     modification_logs = FundingRequestModificationLogSerializer(
         many=True, read_only=True
     )
+    refund_requests = AttachedRefundSerializer(many=True, read_only=True)
     event_id = serializers.PrimaryKeyRelatedField(
         source="event",
         queryset=Event.objects.all(),
@@ -144,6 +173,13 @@ class FundingRequestSerializer(serializers.ModelSerializer):
             "utd_form_required",
             "utd_form_completed",
             "utd_form_completed_at",
+            "school_review_status",
+            "school_submitted_at",
+            "diverted_from_school",
+            "items_bought",
+            "items_bought_at",
+            "club_refunded",
+            "club_refunded_at",
             "approval_id",
             "denial_reason",
             "reviewed_by",
@@ -157,6 +193,7 @@ class FundingRequestSerializer(serializers.ModelSerializer):
             "total_amount",
             "items",
             "modification_logs",
+            "refund_requests",
             "created_at",
             "updated_at",
         ]
@@ -167,6 +204,13 @@ class FundingRequestSerializer(serializers.ModelSerializer):
             "utd_form_required",
             "utd_form_completed",
             "utd_form_completed_at",
+            "school_review_status",
+            "school_submitted_at",
+            "diverted_from_school",
+            "items_bought",
+            "items_bought_at",
+            "club_refunded",
+            "club_refunded_at",
             "approval_id",
             "denial_reason",
             "reviewed_by",
@@ -260,6 +304,15 @@ class UtdFormUpdateSerializer(serializers.Serializer):
     utd_form_completed = serializers.BooleanField(required=True)
 
 
+class FundingWorkflowUpdateSerializer(serializers.Serializer):
+    school_review_status = serializers.ChoiceField(
+        choices=FundingRequest.SchoolReviewStatus.choices, required=False
+    )
+    divert_to_club_funds = serializers.BooleanField(required=False)
+    items_bought = serializers.BooleanField(required=False)
+    club_refunded = serializers.BooleanField(required=False)
+
+
 class RefundRequestSerializer(serializers.ModelSerializer):
     requester_username = serializers.CharField(
         source="requester.username", read_only=True
@@ -310,3 +363,50 @@ class RefundRequestSerializer(serializers.ModelSerializer):
 class RefundStatusUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=RefundRequest.Status.choices, required=True)
     director_notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ClubTreasurySerializer(serializers.ModelSerializer):
+    updated_by_username = serializers.CharField(
+        source="updated_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = ClubTreasury
+        fields = [
+            "id",
+            "current_balance",
+            "notes",
+            "updated_by",
+            "updated_by_username",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "updated_by", "updated_by_username", "updated_at"]
+
+
+class SemesterBudgetSerializer(serializers.ModelSerializer):
+    updated_by_username = serializers.CharField(
+        source="updated_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = SemesterBudget
+        fields = [
+            "id",
+            "semester_key",
+            "label",
+            "spending_goal",
+            "fundraising_goal",
+            "fundraising_raised",
+            "notes",
+            "updated_by",
+            "updated_by_username",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "semester_key",
+            "label",
+            "updated_by",
+            "updated_by_username",
+            "updated_at",
+        ]

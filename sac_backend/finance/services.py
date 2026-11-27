@@ -48,12 +48,28 @@ def parse_semester_filter(semester_str: str) -> tuple[date, date]:
     return date(year, 8, 1), date(year, 12, 31)
 
 
-def get_utd_quota(ref_date: date | None = None, exclude_request_id: int | None = None) -> dict:
+def format_semester_label(semester_str: str) -> str:
+    match = re.fullmatch(r"(spring|summer|fall)[_\-\s](\d{4})", semester_str.strip().lower())
+    if not match:
+        raise ValidationError({"semester": "Invalid semester format. Expected e.g. 'spring_2026', 'summer_2026', or 'fall_2026'."})
+    term, year_str = match.groups()
+    return f"{term.capitalize()} {year_str}"
+
+
+def get_utd_quota(
+    ref_date: date | None = None,
+    exclude_request_id: int | None = None,
+    semester: str | None = None,
+) -> dict:
     """
-    Count UTD Programming Funds requests in the current semester (limit 4/semester).
+    Count UTD Programming Funds requests in the target semester (limit 4/semester).
     Counts requests in APPROVED or MODIFIED states with funding_source=utd_programming_funds.
     """
-    semester_label, start_date, end_date = get_semester_bounds(ref_date)
+    if semester:
+        start_date, end_date = parse_semester_filter(semester)
+        semester_label = format_semester_label(semester)
+    else:
+        semester_label, start_date, end_date = get_semester_bounds(ref_date)
     limit = getattr(settings, "UTD_PROGRAMMING_FUNDS_SEMESTER_LIMIT", 4)
 
     qs = FundingRequest.objects.filter(

@@ -86,6 +86,13 @@ class FundingRequest(TimeStampedModel):
         CLUB_FUNDS = "club_funds", "Club Funds"
         UTD_PROGRAMMING_FUNDS = "utd_programming_funds", "UTD Programming Funds"
 
+    class SchoolReviewStatus(models.TextChoices):
+        NOT_SUBMITTED = "not_submitted", "Not Submitted"
+        SUBMITTED = "submitted", "Submitted"
+        APPROVED = "approved", "Approved"
+        MODIFIED = "modified", "Modified"
+        REJECTED = "rejected", "Rejected"
+
     requester = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -133,6 +140,18 @@ class FundingRequest(TimeStampedModel):
     utd_form_required = models.BooleanField(default=False)
     utd_form_completed = models.BooleanField(default=False)
     utd_form_completed_at = models.DateTimeField(null=True, blank=True)
+
+    school_review_status = models.CharField(
+        max_length=20,
+        choices=SchoolReviewStatus.choices,
+        default=SchoolReviewStatus.NOT_SUBMITTED,
+    )
+    school_submitted_at = models.DateTimeField(null=True, blank=True)
+    diverted_from_school = models.BooleanField(default=False)
+    items_bought = models.BooleanField(default=False)
+    items_bought_at = models.DateTimeField(null=True, blank=True)
+    club_refunded = models.BooleanField(default=False)
+    club_refunded_at = models.DateTimeField(null=True, blank=True)
 
     approval_id = models.CharField(
         max_length=32, unique=True, null=True, blank=True, db_index=True
@@ -299,3 +318,66 @@ class RefundRequest(TimeStampedModel):
 
     def __str__(self):
         return f"Refund #{self.pk} for {self.approval_id_entered} ({self.status})"
+
+
+class ClubTreasury(TimeStampedModel):
+    """
+    Singleton-style record tracking the club's current bank / cash balance.
+    """
+
+    current_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    notes = models.TextField(blank=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="treasury_updates",
+    )
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name_plural = "Club treasury"
+
+    def __str__(self):
+        return f"Club Treasury: ${self.current_balance}"
+
+    @classmethod
+    def get_solo(cls):
+        obj = cls.objects.order_by("id").first()
+        if obj is None:
+            obj = cls.objects.create(current_balance=Decimal("0.00"))
+        return obj
+
+
+class SemesterBudget(TimeStampedModel):
+    """
+    Per-semester spending and fundraising goals configured by the Finance Director.
+    """
+
+    semester_key = models.CharField(max_length=32, unique=True, db_index=True)
+    label = models.CharField(max_length=64)
+    spending_goal = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    fundraising_goal = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    fundraising_raised = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00")
+    )
+    notes = models.TextField(blank=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="semester_budget_updates",
+    )
+
+    class Meta(TimeStampedModel.Meta):
+        ordering = ["-semester_key"]
+
+    def __str__(self):
+        return f"{self.label} (Spend Goal ${self.spending_goal} / Raise Goal ${self.fundraising_goal})"

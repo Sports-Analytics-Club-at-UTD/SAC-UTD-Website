@@ -83,3 +83,33 @@ class CostAnalyticsTests(APITestCase):
         body = csv_resp.content.decode("utf-8")
         self.assertIn("SAC-2026-AAA111", body)
         self.assertIn("SAC-2026-BBB222", body)
+
+    def test_global_budget_treasury_and_semester_goals(self):
+        self.client.force_authenticate(user=self.member)
+        self.assertEqual(self.client.get("/api/finance/global-budget/").status_code, 403)
+
+        self.client.force_authenticate(user=self.director)
+        tr_resp = self.client.patch(
+            "/api/finance/global-budget/treasury/",
+            {"current_balance": "2500.00", "notes": "Starting fall balance"},
+            format="json",
+        )
+        self.assertEqual(tr_resp.status_code, 200)
+        self.assertEqual(Decimal(tr_resp.data["treasury"]["current_balance"]), Decimal("2500.00"))
+
+        sem_resp = self.client.put(
+            "/api/finance/global-budget/semesters/fall_2026/",
+            {
+                "spending_goal": "1200.00",
+                "fundraising_goal": "800.00",
+                "fundraising_raised": "350.00",
+                "notes": "Fall workshops and social",
+            },
+            format="json",
+        )
+        self.assertEqual(sem_resp.status_code, 200)
+        self.assertEqual(len(sem_resp.data["semesters"]), 1)
+        sem = sem_resp.data["semesters"][0]
+        self.assertEqual(sem["semester_key"], "fall_2026")
+        self.assertEqual(sem["label"], "Fall 2026")
+        self.assertEqual(sem["fundraising_pct"], 43.8)
